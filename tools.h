@@ -11,12 +11,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 __host__ __device__
-unsigned int initial_offset(const unsigned int first_padding, const unsigned int halo, const unsigned jstride, const unsigned kstride) {
-    return first_padding + halo*jstride + halo*kstride;
+inline unsigned int initial_offset(const unsigned int first_padding, const unsigned int halo, const unsigned jstride, const unsigned kstride) {
+    return first_padding + halo + halo*jstride + halo*kstride;
 }
 
 __host__ __device__
-unsigned int index(const unsigned int i, const unsigned int j, const unsigned jstride, const unsigned first_padding) {
+inline unsigned int index(const unsigned int i, const unsigned int j, const unsigned jstride, const unsigned first_padding) {
     return i+j*jstride + first_padding;
 }
 
