@@ -9,7 +9,6 @@ void FNNAME(copy) ( T* __restrict__ a,  T* __restrict__ b, const size_t init_off
 
     unsigned idx = index(i,j,jstride, init_offset);
     for(int k=0; k < ksize; ++k) {
-if(threadIdx.x==0 && ((uintptr_t)(&b[idx]))%32 != 0 && ((uintptr_t)(&a[idx]))%32 != 0 ) printf("ERROR");
         b[idx] = LOAD(a[idx]);
         idx += kstride;
     }
@@ -87,11 +86,11 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
 
     const size_t halo=2;
     const size_t alignment=32;
-    const size_t right_padding=(isize+halo*2)%alignment;
+    const size_t right_padding=alignment - (isize+halo*2)%alignment;
     const size_t first_padding=alignment-halo;
-    const size_t total_size=first_padding+(isize+halo*2+right_padding)*(jsize+halo*2)*(ksize+halo*2);
     const size_t jstride = (isize+halo*2+right_padding);
     const size_t kstride = jstride*(jsize+halo*2);
+    const size_t total_size = first_padding + kstride*(ksize+halo*2);
 
     const size_t init_offset = initial_offset(first_padding, halo, jstride, kstride);
 
@@ -124,9 +123,10 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
 
     for(size_t t=0; t < tsteps; t++) {
 
-        /******************************************/
-        /**************** COPY   ******************/
-        /******************************************/
+        //----------------------------------------//
+        //----------------  COPY  ----------------//
+        //----------------------------------------//
+
         gpuErrchk(cudaDeviceSynchronize());
         t1 = std::chrono::high_resolution_clock::now();
         FNNAME(copy)<<<bd, gd>>>(a,b, init_offset, jstride, kstride, ksize);
@@ -148,9 +148,9 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
             }
         }
 
-        /******************************************/
-        /***************** COPYi1 *****************/
-        /******************************************/
+        //----------------------------------------//
+        //---------------- COPYi1 ----------------//
+        //----------------------------------------//
         gpuErrchk(cudaDeviceSynchronize());
         t1 = std::chrono::high_resolution_clock::now();
         FNNAME(copyi1)<<<bd, gd>>>(a,b, init_offset, jstride, kstride, ksize);
@@ -172,9 +172,9 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
             }
         }
 
-        /******************************************/
-        /***************** SUMi1 *****************/
-        /******************************************/
+        //----------------------------------------//
+        //----------------  SUMi1 ----------------//
+        //----------------------------------------//
  
         gpuErrchk(cudaDeviceSynchronize());
         t1 = std::chrono::high_resolution_clock::now();
@@ -198,11 +198,10 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
             }
         }
 
+        //----------------------------------------//
+        //----------------  SUMj1 ----------------//
+        //----------------------------------------//
 
-        /******************************************/
-        /***************** SUMj1 *****************/
-        /******************************************/
- 
         gpuErrchk(cudaDeviceSynchronize());
         t1 = std::chrono::high_resolution_clock::now();
         FNNAME(sumj1)<<<bd, gd>>>(a,b, init_offset, jstride, kstride, ksize);
@@ -224,11 +223,11 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
                 }
             }
         }
- 
-        /******************************************/
-        /***************** SUMk1 *****************/
-        /******************************************/
- 
+
+        //----------------------------------------//
+        //----------------  SUMk1 ----------------//
+        //----------------------------------------//
+
         gpuErrchk(cudaDeviceSynchronize());
         t1 = std::chrono::high_resolution_clock::now();
         FNNAME(sumk1)<<<bd, gd>>>(a,b, init_offset, jstride, kstride, ksize);
@@ -250,11 +249,11 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
                 }
             }
         }
- 
-        /******************************************/
-        /*****************  LAP   *****************/
-        /******************************************/
- 
+        
+        //----------------------------------------//
+        //----------------  LAP   ----------------//
+        //----------------------------------------//
+
         gpuErrchk(cudaDeviceSynchronize());
         t1 = std::chrono::high_resolution_clock::now();
         FNNAME(lap)<<<bd, gd>>>(a,b, init_offset, jstride, kstride, ksize);
@@ -277,7 +276,6 @@ void FNNAME(launch) ( std::vector<double>& timings, const unsigned int isize, co
                 }
             }
         }
- 
     }
 
 }
