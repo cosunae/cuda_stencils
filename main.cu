@@ -1,9 +1,11 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <fstream>
 
 #include "defs.h"
-#include "libjson/libjson.h"
+#include "libjson.h"
+//#include "libjson/_internal/Source/JSONNode.h"
 
 #define FNNAME(a) a
 #define LOAD(a) __ldg(& a)
@@ -28,7 +30,6 @@ int parse_uint(const char *str, unsigned int *output)
   *output = strtoul(str, &next, 10);
   return !strlen(next);
 }
-
 
 int main(int argc, char** argv) {
 
@@ -74,7 +75,24 @@ int main(int argc, char** argv) {
     std::vector<double> timings(num_bench_st);
     std::fill(timings.begin(),timings.end(), 0);
 
+    std::ofstream fs("./perf_results.json", std::ios_base::app);
+    JSONNode globalNode;
+    globalNode.set_name("metrics");
+
+    JSONNode dsize;
+    dsize.set_name("domain");
+
+    dsize.push_back(JSONNode("x", isize));
+    dsize.push_back(JSONNode("y", jsize));
+    dsize.push_back(JSONNode("z", ksize));
+
     launch<float>(timings, isize, jsize, ksize, tsteps, warmup_step);
+
+    JSONNode precf;
+    precf.set_name("float");
+
+    JSONNode fnotex;
+    fnotex.set_name("no_tex");
 
     printf("-------------    NO TEXTURE   -------------\n");
     printf("copy : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copy_st]);
@@ -84,8 +102,26 @@ int main(int argc, char** argv) {
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
 
+    {
+      JSONNode stencils;
+      stencils.set_name("stencils");
+      stencils.push_back(JSONNode("copy", tot_size*2*sizeof(float)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("copyi1", tot_size*2*sizeof(float)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("lap", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+  
+      fnotex.push_back(stencils);
+      precf.push_back(fnotex);
+
+    }
+
     std::fill(timings.begin(),timings.end(), 0);
     launch_ldg<float>(timings, isize, jsize, ksize, tsteps, warmup_step);
+
+    JSONNode ftex;
+    ftex.set_name("tex");
 
     printf("-------------   TEXTURE   -------------\n");
     printf("copy : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copy_st]);
@@ -94,12 +130,36 @@ int main(int argc, char** argv) {
     printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
+
+    {
+      JSONNode stencils;
+      stencils.set_name("stencils");
+      stencils.push_back(JSONNode("copy", tot_size*2*sizeof(float)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("copyi1", tot_size*2*sizeof(float)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("lap", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+
+      ftex.push_back(stencils);
+      precf.push_back(ftex);
+
+    }
+
+    globalNode.push_back(precf);
 
     printf("======================== DOUBLE =======================\n");
 
     std::fill(timings.begin(),timings.end(), 0);
     launch<double>(timings, isize, jsize, ksize, tsteps, warmup_step);
 
+    JSONNode precd;
+    precd.set_name("double");
+
+    JSONNode dnotex;
+    dnotex.set_name("no_tex");
+
+
     printf("-------------    NO TEXTURE   -------------\n");
     printf("copy : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copy_st]);
     printf("copyi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copyi1_st]);
@@ -108,8 +168,27 @@ int main(int argc, char** argv) {
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
 
+    {
+      JSONNode stencils;
+      stencils.set_name("stencils");
+      stencils.push_back(JSONNode("copy", tot_size*2*sizeof(double)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("copyi1", tot_size*2*sizeof(double)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("lap", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+
+      dnotex.push_back(stencils);
+      precd.push_back(dnotex);
+
+    }
+
+
     std::fill(timings.begin(),timings.end(), 0);
     launch_ldg<double>(timings, isize, jsize, ksize, tsteps, warmup_step);
+
+    JSONNode dtex;
+    dtex.set_name("tex");
 
     printf("-------------   TEXTURE   -------------\n");
     printf("copy : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[copy_st]);
@@ -118,5 +197,27 @@ int main(int argc, char** argv) {
     printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
+
+    {
+      JSONNode stencils;
+      stencils.set_name("stencils");
+      stencils.push_back(JSONNode("copy", tot_size*2*sizeof(double)/(timings[copy_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("copyi1", tot_size*2*sizeof(double)/(timings[copyi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("lap", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+
+      dtex.push_back(stencils);
+      precd.push_back(dtex);
+
+    }
+
+    globalNode.push_back(precd);
+
+    globalNode.push_back(dsize);
+
+    fs << globalNode.write_formatted() << std::endl;
+
 
 }
