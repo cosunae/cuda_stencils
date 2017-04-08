@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
 
     std::ofstream fs("./perf_results.json", std::ios_base::app);
     JSONNode globalNode;
+    globalNode.cast(JSON_ARRAY);
     globalNode.set_name("metrics");
 
     JSONNode dsize;
@@ -146,7 +147,7 @@ int main(int argc, char** argv) {
 
     }
 
-    globalNode.push_back(precf);
+    dsize.push_back(precf);
 
     printf("======================== DOUBLE =======================\n");
 
@@ -213,7 +214,7 @@ int main(int argc, char** argv) {
 
     }
 
-    globalNode.push_back(precd);
+    dsize.push_back(precd);
 
     globalNode.push_back(dsize);
 
