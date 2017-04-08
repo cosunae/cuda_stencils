@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include "defs.h"
+#include "libjson/libjson.h"
 
 #define FNNAME(a) a
 #define LOAD(a) __ldg(& a)
