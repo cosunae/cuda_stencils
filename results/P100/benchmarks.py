@@ -150,29 +150,29 @@ reorder(sizes_ord, sizes, lap_fnt)
 
 
 fig, ax = plt.subplots()
-line1, = ax.plot(sizes_ord, copy_dnt, '-o',
-                 label='copy_dnt')
-line1, = ax.plot(sizes_ord, copyi1_dnt, '-v', linewidth=2,
-                 label='copyi1_dnt')
-line1, = ax.plot(sizes_ord, sumi1_dnt, '-s', linewidth=2,
-                 label='sumj1_dnt')
-line1, = ax.plot(sizes_ord, sumj1_dnt, '-^', linewidth=2,
-                 label='sumj1_dnt')
-line1, = ax.plot(sizes_ord, sumk1_dnt, '-*', linewidth=2,
-                 label='sumk1_dnt')
-line1, = ax.plot(sizes_ord, avgi_dnt, '-h', linewidth=2,
-                 label='avgi_dnt')
-line1, = ax.plot(sizes_ord, avgj_dnt, '-d', linewidth=2,
-                 label='avgj_dnt')
-line1, = ax.plot(sizes_ord, avgk_dnt, '-p', marker='D', linewidth=2,
-                 label='avgk_dnt')
-line1, = ax.plot(sizes_ord, lap_dnt, '-|', linewidth=2,
-                 label='lap_dnt')
+line1, = ax.plot(sizes_ord, copy_fnt, '-o',
+                 label='copy_fnt')
+line1, = ax.plot(sizes_ord, copyi1_fnt, '-v', linewidth=2,
+                 label='copyi1_fnt')
+line1, = ax.plot(sizes_ord, sumi1_fnt, '-s', linewidth=2,
+                 label='sumj1_fnt')
+line1, = ax.plot(sizes_ord, sumj1_fnt, '-^', linewidth=2,
+                 label='sumj1_fnt')
+line1, = ax.plot(sizes_ord, sumk1_fnt, '-*', linewidth=2,
+                 label='sumk1_fnt')
+line1, = ax.plot(sizes_ord, avgi_fnt, '-h', linewidth=2,
+                 label='avgi_fnt')
+line1, = ax.plot(sizes_ord, avgj_fnt, '-d', linewidth=2,
+                 label='avgj_fnt')
+line1, = ax.plot(sizes_ord, avgk_fnt, '-p', marker='D', linewidth=2,
+                 label='avgk_fnt')
+line1, = ax.plot(sizes_ord, lap_fnt, '-|', linewidth=2,
+                 label='lap_fnt')
 
 ax.legend(loc='lower right')
 ax.set_xscale("log", nonposy='clip')
 ax.set_xlabel("i*j number grid points", fontsize=18)
-ax.set_ylabel("mem bandwidth (GB/s)", fontsize=18)
+ax.set_ylabel("mem bandwidth (GiB/s)", fontsize=18)
 
 
 plt.show()
