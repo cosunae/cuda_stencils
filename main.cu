@@ -101,6 +101,9 @@ int main(int argc, char** argv) {
     printf("sumi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumi1_st]);
     printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
+    printf("avgi : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgi_st]);
+    printf("avgj : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgj_st]);
+    printf("avgk : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgk_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
 
     {
@@ -111,6 +114,9 @@ int main(int argc, char** argv) {
       stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgi", tot_size*2*sizeof(float)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgj", tot_size*2*sizeof(float)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgk", tot_size*2*sizeof(float)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("lap", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
   
       fnotex.push_back(stencils);
@@ -130,6 +136,9 @@ int main(int argc, char** argv) {
     printf("sumi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumi1_st]);
     printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
+    printf("avgi : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgi_st]);
+    printf("avgj : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgj_st]);
+    printf("avgk : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgk_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
 
     {
@@ -140,6 +149,9 @@ int main(int argc, char** argv) {
       stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(float)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(float)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(float)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgi", tot_size*2*sizeof(float)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgj", tot_size*2*sizeof(float)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgk", tot_size*2*sizeof(float)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("lap", tot_size*2*sizeof(float)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
 
       ftex.push_back(stencils);
@@ -167,6 +179,9 @@ int main(int argc, char** argv) {
     printf("sumi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumi1_st]);
     printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
+    printf("avgi : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgi_st]);
+    printf("avgj : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgj_st]);
+    printf("avgk : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgk_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
 
     {
@@ -177,6 +192,9 @@ int main(int argc, char** argv) {
       stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgi", tot_size*2*sizeof(double)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgj", tot_size*2*sizeof(double)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgk", tot_size*2*sizeof(double)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("lap", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
 
       dnotex.push_back(stencils);
@@ -197,6 +215,9 @@ int main(int argc, char** argv) {
     printf("sumi1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumi1_st]);
     printf("sumj1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumj1_st]);
     printf("sumk1 : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[sumk1_st]);
+    printf("avgi : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgi_st]);
+    printf("avgj : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgj_st]);
+    printf("avgk : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[avgk_st]);
     printf("lap : %f GB/s, time : %f \n", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.), timings[lap_st]);
 
     {
@@ -207,6 +228,9 @@ int main(int argc, char** argv) {
       stencils.push_back(JSONNode("sumi1", tot_size*2*sizeof(double)/(timings[sumi1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumj1", tot_size*2*sizeof(double)/(timings[sumj1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("sumk1", tot_size*2*sizeof(double)/(timings[sumk1_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgi", tot_size*2*sizeof(double)/(timings[avgi_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgj", tot_size*2*sizeof(double)/(timings[avgj_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
+      stencils.push_back(JSONNode("avgk", tot_size*2*sizeof(double)/(timings[avgk_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
       stencils.push_back(JSONNode("lap", tot_size*2*sizeof(double)/(timings[lap_st]/(double)(tsteps - (warmup_step+1)))/(1024.*1024.*1024.)));
 
       dtex.push_back(stencils);
