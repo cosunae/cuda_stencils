@@ -59,6 +59,76 @@ avgj_fnt=[]
 avgk_fnt=[]
 lap_fnt=[]
 
+greg_sizes = [
+8192,
+16384,
+32768,
+65536,
+131072,
+262144,
+524288,
+1048576,
+2097152,
+4194304,
+8388608,
+16777216,
+33554432,
+67108864,
+134217728,
+268435456#,
+#536870912,
+#1073741824,
+#2147483648,
+#4294967296 
+]
+
+greg_gpu_stream = [
+2.58    ,
+5.14    ,
+10.3    ,
+20.5    ,
+40.9    ,
+80.6    ,
+149    ,
+272    ,
+363    ,
+393    ,
+461    ,
+506    ,
+527    ,
+543    ,
+548    ,
+553    #,
+#553    ,
+#557    ,
+#557    ,
+#555 
+]
+
+greg_model = [
+    2.77804909,
+    5.542242602,
+    11.02933897,
+    21.84028239,
+    42.82419506,
+    82.35590955,
+    152.5349863,
+    263.2981198,
+    402.1332236,
+    513.9412596,
+    553.6713552,
+    556.9801079,
+    556.9999993,
+    557,
+    557,
+    557#,
+#    557,
+#    557,
+#    557,
+#    557
+]
+
+greg_sizes = [x/60. for x in greg_sizes]
 
 for domain in json_dict:
   x = domain['x']
@@ -103,6 +173,49 @@ for domain in json_dict:
   avgj_fnt.append( domain['float']['tex']['stencils']['avgj'])
   avgk_fnt.append( domain['float']['tex']['stencils']['avgk'])
   lap_fnt.append( domain['float']['no_tex']['stencils']['lap'])
+
+copy_dt = [x*1024.0*1024.0*1024.0/1e9 for x in copy_dt]
+copyi1_dt = [x*1024.0*1024.0*1024.0/1e9 for x in copyi1_dt]
+sumi1_dt = [x*1024.0*1024.0*1024.0/1e9 for x in sumi1_dt]
+sumj1_dt = [x*1024.0*1024.0*1024.0/1e9 for x in sumj1_dt]
+sumk1_dt = [x*1024.0*1024.0*1024.0/1e9 for x in sumk1_dt]
+avgi_dt = [x*1024.0*1024.0*1024.0/1e9 for x in avgi_dt]
+avgj_dt = [x*1024.0*1024.0*1024.0/1e9 for x in avgj_dt]
+avgk_dt = [x*1024.0*1024.0*1024.0/1e9 for x in avgk_dt]
+lap_dt = [x*1024.0*1024.0*1024.0/1e9 for x in lap_dt]
+
+copy_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in copy_dnt]
+copyi1_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in copyi1_dnt]
+sumi1_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in sumi1_dnt]
+sumj1_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in sumj1_dnt]
+sumk1_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in sumk1_dnt]
+avgi_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in avgi_dnt]
+avgj_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in avgj_dnt]
+avgk_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in avgk_dnt]
+lap_dnt = [x*1024.0*1024.0*1024.0/1e9 for x in lap_dnt]
+
+copy_ft = [x*1024.0*1024.0*1024.0/1e9 for x in copy_ft]
+copyi1_ft = [x*1024.0*1024.0*1024.0/1e9 for x in copyi1_ft]
+sumi1_ft = [x*1024.0*1024.0*1024.0/1e9 for x in sumi1_ft]
+sumj1_ft = [x*1024.0*1024.0*1024.0/1e9 for x in sumj1_ft]
+sumk1_ft = [x*1024.0*1024.0*1024.0/1e9 for x in sumk1_ft]
+avgi_ft = [x*1024.0*1024.0*1024.0/1e9 for x in avgi_ft]
+avgj_ft = [x*1024.0*1024.0*1024.0/1e9 for x in avgj_ft]
+avgk_ft = [x*1024.0*1024.0*1024.0/1e9 for x in avgk_ft]
+lap_ft = [x*1024.0*1024.0*1024.0/1e9 for x in lap_ft]
+
+copy_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in copy_fnt]
+copyi1_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in copyi1_fnt]
+sumi1_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in sumi1_fnt]
+sumj1_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in sumj1_fnt]
+sumk1_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in sumk1_fnt]
+avgi_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in avgi_fnt]
+avgj_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in avgj_fnt]
+avgk_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in avgk_fnt]
+lap_fnt = [x*1024.0*1024.0*1024.0/1e9 for x in lap_fnt]
+
+
+
 
 sizes_ord=[]
 
@@ -150,24 +263,29 @@ reorder(sizes_ord, sizes, lap_fnt)
 
 
 fig, ax = plt.subplots()
-line1, = ax.plot(sizes_ord, copy_fnt, '-o',
-                 label='copy_fnt')
-line1, = ax.plot(sizes_ord, copyi1_fnt, '-v', linewidth=2,
-                 label='copyi1_fnt')
-line1, = ax.plot(sizes_ord, sumi1_fnt, '-s', linewidth=2,
-                 label='sumj1_fnt')
-line1, = ax.plot(sizes_ord, sumj1_fnt, '-^', linewidth=2,
-                 label='sumj1_fnt')
-line1, = ax.plot(sizes_ord, sumk1_fnt, '-*', linewidth=2,
-                 label='sumk1_fnt')
-line1, = ax.plot(sizes_ord, avgi_fnt, '-h', linewidth=2,
-                 label='avgi_fnt')
-line1, = ax.plot(sizes_ord, avgj_fnt, '-d', linewidth=2,
-                 label='avgj_fnt')
-line1, = ax.plot(sizes_ord, avgk_fnt, '-p', marker='D', linewidth=2,
-                 label='avgk_fnt')
-line1, = ax.plot(sizes_ord, lap_fnt, '-|', linewidth=2,
-                 label='lap_fnt')
+line1, = ax.plot(sizes_ord, copy_ft, '-o',
+                 label='copy_ft')
+line1, = ax.plot(sizes_ord, copyi1_ft, '-v', linewidth=2,
+                 label='copyi1_ft')
+line1, = ax.plot(sizes_ord, sumi1_ft, '-s', linewidth=2,
+                 label='sumj1_ft')
+line1, = ax.plot(sizes_ord, sumj1_ft, '-^', linewidth=2,
+                 label='sumj1_ft')
+line1, = ax.plot(sizes_ord, sumk1_ft, '-*', linewidth=2,
+                 label='sumk1_ft')
+line1, = ax.plot(sizes_ord, avgi_ft, '-h', linewidth=2,
+                 label='avgi_ft')
+line1, = ax.plot(sizes_ord, avgj_ft, '-d', linewidth=2,
+                 label='avgj_ft')
+line1, = ax.plot(sizes_ord, avgk_ft, '-p', marker='D', linewidth=2,
+                 label='avgk_ft')
+line1, = ax.plot(sizes_ord, lap_ft, '-|', linewidth=2,
+                 label='lap_ft')
+line1, = ax.plot(greg_sizes, greg_gpu_stream, '-*', linewidth=2,
+                 label='gpu stream')
+line1, = ax.plot(greg_sizes, greg_model, '-*', linewidth=2,
+                 label='model')
+
 
 ax.legend(loc='lower right')
 ax.set_xscale("log", nonposy='clip')
