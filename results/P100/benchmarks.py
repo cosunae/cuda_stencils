@@ -14,7 +14,7 @@ def reorder(x_ord, x, y):
 
   return  
 
-jsonfile = open('perf_results.json','r')
+jsonfile = open('perf_results_k60.json','r')
 
 json_dict= json.load(jsonfile)
 
@@ -263,24 +263,24 @@ reorder(sizes_ord, sizes, lap_fnt)
 
 
 fig, ax = plt.subplots()
-line1, = ax.plot(sizes_ord, copy_ft, '-o',
-                 label='copy_ft')
-line1, = ax.plot(sizes_ord, copyi1_ft, '-v', linewidth=2,
-                 label='copyi1_ft')
-line1, = ax.plot(sizes_ord, sumi1_ft, '-s', linewidth=2,
-                 label='sumj1_ft')
-line1, = ax.plot(sizes_ord, sumj1_ft, '-^', linewidth=2,
-                 label='sumj1_ft')
-line1, = ax.plot(sizes_ord, sumk1_ft, '-*', linewidth=2,
-                 label='sumk1_ft')
-line1, = ax.plot(sizes_ord, avgi_ft, '-h', linewidth=2,
-                 label='avgi_ft')
-line1, = ax.plot(sizes_ord, avgj_ft, '-d', linewidth=2,
-                 label='avgj_ft')
-line1, = ax.plot(sizes_ord, avgk_ft, '-p', marker='D', linewidth=2,
-                 label='avgk_ft')
-line1, = ax.plot(sizes_ord, lap_ft, '-|', linewidth=2,
-                 label='lap_ft')
+line1, = ax.plot(sizes_ord, copy_dt, '-o',
+                 label='copy_dt')
+line1, = ax.plot(sizes_ord, copyi1_dt, '-v', linewidth=2,
+                 label='copyi1_dt')
+line1, = ax.plot(sizes_ord, sumi1_dt, '-s', linewidth=2,
+                 label='sumj1_dt')
+line1, = ax.plot(sizes_ord, sumj1_dt, '-^', linewidth=2,
+                 label='sumj1_dt')
+line1, = ax.plot(sizes_ord, sumk1_dt, '-*', linewidth=2,
+                 label='sumk1_dt')
+line1, = ax.plot(sizes_ord, avgi_dt, '-h', linewidth=2,
+                 label='avgi_dt')
+line1, = ax.plot(sizes_ord, avgj_dt, '-d', linewidth=2,
+                 label='avgj_dt')
+line1, = ax.plot(sizes_ord, avgk_dt, '-p', marker='D', linewidth=2,
+                 label='avgk_dt')
+line1, = ax.plot(sizes_ord, lap_dt, '-|', linewidth=2,
+                 label='lap_dt')
 line1, = ax.plot(greg_sizes, greg_gpu_stream, '-*', linewidth=2,
                  label='gpu stream')
 line1, = ax.plot(greg_sizes, greg_model, '-*', linewidth=2,
@@ -290,7 +290,7 @@ line1, = ax.plot(greg_sizes, greg_model, '-*', linewidth=2,
 ax.legend(loc='lower right')
 ax.set_xscale("log", nonposy='clip')
 ax.set_xlabel("i*j number grid points", fontsize=18)
-ax.set_ylabel("mem bandwidth (GiB/s)", fontsize=18)
+ax.set_ylabel("mem bandwidth (GB/s)", fontsize=18)
 
 
 plt.show()
