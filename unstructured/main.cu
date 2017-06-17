@@ -65,6 +65,37 @@ int main(int argc, char **argv) {
   const size_t tsteps = 100;
   const size_t warmup_step = 10;
 
-  mesh mesh_(8, 6);
+  mesh mesh_(isize, jsize, 2);
   mesh_.print();
+
+  printf("======================== FLOAT =======================\n");
+  std::vector<double> timings(num_bench_st);
+  std::fill(timings.begin(), timings.end(), 0);
+
+  std::ofstream fs("./perf_results.json", std::ios_base::app);
+  JSONNode globalNode;
+  globalNode.cast(JSON_ARRAY);
+  globalNode.set_name("metrics");
+
+  JSONNode dsize;
+  dsize.set_name("domain");
+
+  dsize.push_back(JSONNode("x", isize));
+  dsize.push_back(JSONNode("y", jsize));
+  dsize.push_back(JSONNode("z", ksize));
+
+  //  launch<float>(timings, isize, jsize, ksize, tsteps, warmup_step);
+
+  JSONNode precf;
+  precf.set_name("float");
+
+  JSONNode fnotex;
+  fnotex.set_name("no_tex");
+
+  printf("-------------    NO TEXTURE   -------------\n");
+  printf("copy : %f GB/s, time : %f \n",
+         tot_size * 2 * sizeof(float) /
+             (timings[copy_st] / (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
+         timings[copy_st]);
 }

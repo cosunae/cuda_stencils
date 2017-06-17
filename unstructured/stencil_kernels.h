@@ -27,206 +27,206 @@ __global__ void
   }
 }
 
-template <typename T>
-__global__ void
-    FNNAME(copyi1)(T *__restrict__ a, T *__restrict__ b,
-                   const unsigned int init_offset, const unsigned int jstride,
-                   const unsigned int kstride, const unsigned int ksize,
-                   const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(copyi1)(T *__restrict__ a, T *__restrict__ b,
+//                   const unsigned int init_offset, const unsigned int jstride,
+//                   const unsigned int kstride, const unsigned int ksize,
+//                   const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx + 1]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx + 1]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
-template <typename T>
-__global__ void
-    FNNAME(sumi1)(T *__restrict__ a, T *__restrict__ b,
-                  const unsigned int init_offset, const unsigned int jstride,
-                  const unsigned int kstride, const unsigned int ksize,
-                  const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(sumi1)(T *__restrict__ a, T *__restrict__ b,
+//                  const unsigned int init_offset, const unsigned int jstride,
+//                  const unsigned int kstride, const unsigned int ksize,
+//                  const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx]) + LOAD(a[idx + 1]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx]) + LOAD(a[idx + 1]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
-template <typename T>
-__global__ void
-    FNNAME(avgi)(T *__restrict__ a, T *__restrict__ b,
-                 const unsigned int init_offset, const unsigned int jstride,
-                 const unsigned int kstride, const unsigned int ksize,
-                 const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(avgi)(T *__restrict__ a, T *__restrict__ b,
+//                 const unsigned int init_offset, const unsigned int jstride,
+//                 const unsigned int kstride, const unsigned int ksize,
+//                 const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx - 1]) + LOAD(a[idx + 1]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx - 1]) + LOAD(a[idx + 1]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
-template <typename T>
-__global__ void
-    FNNAME(sumj1)(T *__restrict__ a, T *__restrict__ b,
-                  const unsigned int init_offset, const unsigned int jstride,
-                  const unsigned int kstride, const unsigned int ksize,
-                  const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(sumj1)(T *__restrict__ a, T *__restrict__ b,
+//                  const unsigned int init_offset, const unsigned int jstride,
+//                  const unsigned int kstride, const unsigned int ksize,
+//                  const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx]) + LOAD(a[idx + jstride]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx]) + LOAD(a[idx + jstride]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
-template <typename T>
-__global__ void
-    FNNAME(avgj)(T *__restrict__ a, T *__restrict__ b,
-                 const unsigned int init_offset, const unsigned int jstride,
-                 const unsigned int kstride, const unsigned int ksize,
-                 const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(avgj)(T *__restrict__ a, T *__restrict__ b,
+//                 const unsigned int init_offset, const unsigned int jstride,
+//                 const unsigned int kstride, const unsigned int ksize,
+//                 const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx - jstride]) + LOAD(a[idx + jstride]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx - jstride]) + LOAD(a[idx + jstride]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
-template <typename T>
-__global__ void
-    FNNAME(sumk1)(T *__restrict__ a, T *__restrict__ b,
-                  const unsigned int init_offset, const unsigned int jstride,
-                  const unsigned int kstride, const unsigned int ksize,
-                  const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(sumk1)(T *__restrict__ a, T *__restrict__ b,
+//                  const unsigned int init_offset, const unsigned int jstride,
+//                  const unsigned int kstride, const unsigned int ksize,
+//                  const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx]) + LOAD(a[idx + kstride]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx]) + LOAD(a[idx + kstride]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
-template <typename T>
-__global__ void
-    FNNAME(avgk)(T *__restrict__ a, T *__restrict__ b,
-                 const unsigned int init_offset, const unsigned int jstride,
-                 const unsigned int kstride, const unsigned int ksize,
-                 const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(avgk)(T *__restrict__ a, T *__restrict__ b,
+//                 const unsigned int init_offset, const unsigned int jstride,
+//                 const unsigned int kstride, const unsigned int ksize,
+//                 const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx - kstride]) + LOAD(a[idx + kstride]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx - kstride]) + LOAD(a[idx + kstride]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
-template <typename T>
-__global__ void
-    FNNAME(lap)(T *__restrict__ a, T *__restrict__ b,
-                const unsigned int init_offset, const unsigned int jstride,
-                const unsigned int kstride, const unsigned int ksize,
-                const unsigned int isize, const unsigned int jsize) {
-  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+// template <typename T>
+//__global__ void
+//    FNNAME(lap)(T *__restrict__ a, T *__restrict__ b,
+//                const unsigned int init_offset, const unsigned int jstride,
+//                const unsigned int kstride, const unsigned int ksize,
+//                const unsigned int isize, const unsigned int jsize) {
+//  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
-                               ? BLOCKSIZEX
-                               : isize - blockIdx.x * BLOCKSIZEX;
-  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
-                               ? BLOCKSIZEY
-                               : jsize - blockIdx.y * BLOCKSIZEY;
+//  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+//                               ? BLOCKSIZEX
+//                               : isize - blockIdx.x * BLOCKSIZEX;
+//  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+//                               ? BLOCKSIZEY
+//                               : jsize - blockIdx.y * BLOCKSIZEY;
 
-  unsigned idx = index(i, j, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
-      b[idx] = LOAD(a[idx]) + LOAD(a[idx + 1]) + LOAD(a[idx - 1]) +
-               LOAD(a[idx + jstride]) + LOAD(a[idx - jstride]);
-    }
-    idx += kstride;
-  }
-}
+//  unsigned idx = index(i, j, jstride, init_offset);
+//  for (int k = 0; k < ksize; ++k) {
+//    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+//      b[idx] = LOAD(a[idx]) + LOAD(a[idx + 1]) + LOAD(a[idx - 1]) +
+//               LOAD(a[idx + jstride]) + LOAD(a[idx - jstride]);
+//    }
+//    idx += kstride;
+//  }
+//}
 
 template <typename T>
 void FNNAME(launch)(std::vector<double> &timings, const unsigned int isize,
@@ -300,266 +300,295 @@ void FNNAME(launch)(std::vector<double> &timings, const unsigned int isize,
       }
     }
 
-    //----------------------------------------//
-    //---------------- COPYi1 ----------------//
-    //----------------------------------------//
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(copyi1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-                                              kstride, ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    //----------------------------------------//
+    //    //---------------- COPYi1 ----------------//
+    //    //----------------------------------------//
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(copyi1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //                                              kstride, ksize, isize,
+    //                                              jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[copyi1_st] += std::chrono::duration<double>(t2 - t1).count();
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i + 1 + j * jstride + k * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[copyi1_st] += std::chrono::duration<double>(t2 -
+    //      t1).count();
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i + 1 + j * jstride + k * kstride + init_offset]) {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
 
-    //----------------------------------------//
-    //----------------  SUMi1 ----------------//
-    //----------------------------------------//
+    //    //----------------------------------------//
+    //    //----------------  SUMi1 ----------------//
+    //    //----------------------------------------//
 
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(sumi1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-                                             kstride, ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(sumi1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //                                             kstride, ksize, isize,
+    //                                             jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[sumi1_st] +=
-          std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-              .count();
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[sumi1_st] +=
+    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+    //          t1)
+    //              .count();
 
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i + j * jstride + k * kstride + init_offset] +
-                    a[i + 1 + j * jstride + k * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i + j * jstride + k * kstride + init_offset] +
+    //                    a[i + 1 + j * jstride + k * kstride + init_offset]) {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
 
-    //----------------------------------------//
-    //----------------  SUMj1 ----------------//
-    //----------------------------------------//
+    //    //----------------------------------------//
+    //    //----------------  SUMj1 ----------------//
+    //    //----------------------------------------//
 
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(sumj1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-                                             kstride, ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(sumj1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //                                             kstride, ksize, isize,
+    //                                             jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[sumj1_st] +=
-          std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-              .count();
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[sumj1_st] +=
+    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+    //          t1)
+    //              .count();
 
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i + j * jstride + k * kstride + init_offset] +
-                    a[i + (j + 1) * jstride + k * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i + j * jstride + k * kstride + init_offset] +
+    //                    a[i + (j + 1) * jstride + k * kstride + init_offset])
+    //                    {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
 
-    //----------------------------------------//
-    //----------------  SUMk1 ----------------//
-    //----------------------------------------//
+    //    //----------------------------------------//
+    //    //----------------  SUMk1 ----------------//
+    //    //----------------------------------------//
 
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(sumk1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-                                             kstride, ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(sumk1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //                                             kstride, ksize, isize,
+    //                                             jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[sumk1_st] +=
-          std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-              .count();
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[sumk1_st] +=
+    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+    //          t1)
+    //              .count();
 
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i + j * jstride + k * kstride + init_offset] +
-                    a[i + j * jstride + (k + 1) * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i + j * jstride + k * kstride + init_offset] +
+    //                    a[i + j * jstride + (k + 1) * kstride + init_offset])
+    //                    {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
 
-    //----------------------------------------//
-    //----------------  AVGi  ----------------//
-    //----------------------------------------//
+    //    //----------------------------------------//
+    //    //----------------  AVGi  ----------------//
+    //    //----------------------------------------//
 
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(avgi)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride, kstride,
-                                            ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(avgi)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //    kstride,
+    //                                            ksize, isize, jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[avgi_st] +=
-          std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-              .count();
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[avgi_st] +=
+    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+    //          t1)
+    //              .count();
 
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i - 1 + j * jstride + k * kstride + init_offset] +
-                    a[i + 1 + j * jstride + k * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i - 1 + j * jstride + k * kstride + init_offset] +
+    //                    a[i + 1 + j * jstride + k * kstride + init_offset]) {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
 
-    //----------------------------------------//
-    //----------------  AVGj  ----------------//
-    //----------------------------------------//
+    //    //----------------------------------------//
+    //    //----------------  AVGj  ----------------//
+    //    //----------------------------------------//
 
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(avgj)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride, kstride,
-                                            ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(avgj)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //    kstride,
+    //                                            ksize, isize, jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[avgj_st] +=
-          std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-              .count();
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[avgj_st] +=
+    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+    //          t1)
+    //              .count();
 
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i + (j - 1) * jstride + k * kstride + init_offset] +
-                    a[i + (j + 1) * jstride + k * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i + (j - 1) * jstride + k * kstride + init_offset] +
+    //                    a[i + (j + 1) * jstride + k * kstride + init_offset])
+    //                    {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
 
-    //----------------------------------------//
-    //----------------  AVGk  ----------------//
-    //----------------------------------------//
+    //    //----------------------------------------//
+    //    //----------------  AVGk  ----------------//
+    //    //----------------------------------------//
 
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(avgk)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride, kstride,
-                                            ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(avgk)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //    kstride,
+    //                                            ksize, isize, jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[avgk_st] +=
-          std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-              .count();
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[avgk_st] +=
+    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+    //          t1)
+    //              .count();
 
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i + j * jstride + (k - 1) * kstride + init_offset] +
-                    a[i + j * jstride + (k + 1) * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i + j * jstride + (k - 1) * kstride + init_offset] +
+    //                    a[i + j * jstride + (k + 1) * kstride + init_offset])
+    //                    {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
 
-    //----------------------------------------//
-    //----------------  LAP   ----------------//
-    //----------------------------------------//
+    //    //----------------------------------------//
+    //    //----------------  LAP   ----------------//
+    //    //----------------------------------------//
 
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
-    FNNAME(lap)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride, kstride,
-                                           ksize, isize, jsize);
-    // gpuErrchk(cudaPeekAtLastError());
-    gpuErrchk(cudaDeviceSynchronize());
+    //    gpuErrchk(cudaDeviceSynchronize());
+    //    t1 = std::chrono::high_resolution_clock::now();
+    //    FNNAME(lap)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
+    //    kstride,
+    //                                           ksize, isize, jsize);
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[lap_st] +=
-          std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-              .count();
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[lap_st] +=
+    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+    //          t1)
+    //              .count();
 
-    if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if (b[i + j * jstride + k * kstride + init_offset] !=
-                a[i + j * jstride + k * kstride + init_offset] +
-                    a[i + 1 + j * jstride + k * kstride + init_offset] +
-                    a[i - 1 + j * jstride + k * kstride + init_offset] +
-                    a[i + (j + 1) * jstride + k * kstride + init_offset] +
-                    a[i + (j - 1) * jstride + k * kstride + init_offset]) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b[i + j * jstride + k * kstride + init_offset],
-                     a[i + j * jstride + k * kstride + init_offset]);
-            }
-          }
-        }
-      }
-    }
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //            if (b[i + j * jstride + k * kstride + init_offset] !=
+    //                a[i + j * jstride + k * kstride + init_offset] +
+    //                    a[i + 1 + j * jstride + k * kstride + init_offset] +
+    //                    a[i - 1 + j * jstride + k * kstride + init_offset] +
+    //                    a[i + (j + 1) * jstride + k * kstride + init_offset] +
+    //                    a[i + (j - 1) * jstride + k * kstride + init_offset])
+    //                    {
+    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
+    //              (int)k,
+    //                     b[i + j * jstride + k * kstride + init_offset],
+    //                     a[i + j * jstride + k * kstride + init_offset]);
+    //            }
+    //          }
+    //        }
+    //      }
+    //    }
   }
 }
