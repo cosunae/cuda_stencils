@@ -102,8 +102,10 @@ public:
     assert(c < num_colors(m_ploc));
     //    assert(j < m_jsize);
     assert(neigh_idx < num_neighbours(m_ploc, m_nloc));
-    return i + c * (m_isize) + j * (m_isize)*num_colors(m_ploc) +
-           neigh_idx * m_isize * num_colors(m_ploc) * m_jsize;
+    return i + c * (m_isize + m_nhalo * 2) +
+           j * (m_isize + m_nhalo * 2) * num_colors(m_ploc) +
+           neigh_idx * (m_isize + m_nhalo * 2) * num_colors(m_ploc) *
+               (m_jsize + m_nhalo * 2);
   }
 
 private:
