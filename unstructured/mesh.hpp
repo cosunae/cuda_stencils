@@ -38,6 +38,7 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <array>
 
 #define GHOST_ID_X 10000
 #define GHOST_ID_Y 20000
@@ -87,8 +88,7 @@ public:
 #endif
   }
 
-  size_t &operator()(unsigned int i, unsigned int c, unsigned int j,
-                     unsigned int neigh_idx) {
+  size_t &operator()(int i, unsigned int c, int j, unsigned int neigh_idx) {
 
     assert(index_in_tables(i, c, j, neigh_idx) <
            size_of_array(m_ploc, m_nloc, m_isize, m_jsize, m_nhalo));
@@ -96,14 +96,13 @@ public:
     return m_data[index_in_tables(i, c, j, neigh_idx)];
   }
 
-  size_t index_in_tables(unsigned int i, unsigned int c, unsigned int j,
-                         unsigned int neigh_idx) {
-    //    assert(i < m_isize);
+  size_t index_in_tables(int i, unsigned int c, int j, unsigned int neigh_idx) {
+    assert(i > -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
     assert(c < num_colors(m_ploc));
-    //    assert(j < m_jsize);
+    assert(j > -(int)m_nhalo && j < (int)(m_jsize + m_nhalo));
     assert(neigh_idx < num_neighbours(m_ploc, m_nloc));
-    return i + c * (m_isize + m_nhalo * 2) +
-           j * (m_isize + m_nhalo * 2) * num_colors(m_ploc) +
+    return (i + (int)m_nhalo) + c * (m_isize + m_nhalo * 2) +
+           (j + (int)m_nhalo) * (m_isize + m_nhalo * 2) * num_colors(m_ploc) +
            neigh_idx * (m_isize + m_nhalo * 2) * num_colors(m_ploc) *
                (m_jsize + m_nhalo * 2);
   }
@@ -114,6 +113,133 @@ private:
   size_t m_isize, m_jsize, m_nhalo;
   size_t *m_data;
 };
+
+class elements {
+  static constexpr size_t size_of_array(const location primary_loc,
+                                        const unsigned int isize,
+                                        const unsigned int jsize,
+                                        const unsigned int nhalo) {
+    return num_nodes(isize, jsize, nhalo) * num_colors(primary_loc) *
+           sizeof(size_t);
+  }
+
+  elements(location primary_loc, size_t isize, size_t jsize, size_t nhalo)
+      : m_loc(primary_loc), m_isize(isize), m_jsize(jsize), m_nhalo(nhalo),
+        m_elements_to_cells(primary_loc, location::cell, isize, jsize, nhalo),
+        m_elements_to_edges(primary_loc, location::edge, isize, jsize, nhalo),
+        m_elements_to_vertices(primary_loc, location::vertex, isize, jsize,
+                               nhalo) {
+#ifdef ENABLE_GPU
+    cudaMallocManaged(&m_idx, size_of_array(primary_loc, isize, jsize, nhalo));
+#else
+    m_idx = (size_t *)malloc(size_of_array(primary_loc, isize, jsize, nhalo));
+#endif
+  }
+
+  size_t &neighbor(location neigh_loc, int i, unsigned int c, int j,
+                   unsigned int neigh_idx) {
+    if (neigh_loc == location::cell)
+      return m_elements_to_cells(i, c, j, neigh_idx);
+    else if (neigh_loc == location::edge)
+      return m_elements_to_cells(i, c, j, neigh_idx);
+    return m_elements_to_vertices(i, c, j, neigh_idx);
+  }
+
+  size_t last_compute_domain_idx() { return m_isize * m_jsize; }
+
+  virtual size_t idx(int i, unsigned int c, int j) {
+    if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize)
+      return i + c * m_isize + j * m_isize * num_colors(m_loc);
+    if (i < 0 && j >= 0 && j < (int)m_jsize)
+      return last_compute_domain_idx() - i + c * m_nhalo +
+             j * m_nhalo * num_colors(m_loc);
+    if (j < 0 && i < (int)m_isize)
+      return last_compute_domain_idx() + m_nhalo * num_colors(m_loc) * m_jsize +
+             (j + (int)m_nhalo) + c * m_nhalo;
+    // TODO
+    return -1;
+  }
+
+private:
+  location m_loc;
+  size_t *m_idx;
+  size_t m_isize, m_jsize, m_nhalo;
+  neighbours_table m_elements_to_cells, m_elements_to_edges,
+      m_elements_to_vertices;
+};
+
+class nodes {
+
+  template <typename T>
+  static constexpr size_t
+  size_of_mesh_fields(const location loc, const unsigned int isize,
+                      const unsigned int jsize, const unsigned int nhalo) {
+    return num_nodes(isize, jsize, nhalo) * num_colors(loc) * sizeof(T);
+  }
+
+  nodes(size_t isize, size_t jsize, size_t nhalo)
+      : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo),
+        m_vertex_to_cell(location::vertex, location::cell, isize, jsize, nhalo),
+        m_vertex_to_edge(location::vertex, location::edge, isize, jsize, nhalo),
+        m_vertex_to_vertex(location::vertex, location::vertex, isize, jsize,
+                           nhalo) {
+#ifdef ENABLE_GPU
+    cudaMallocManaged(&m_x, size_of_mesh_fields<double>(location::vertex, isize,
+                                                        jsize, nhalo));
+    cudaMallocManaged(&m_y, size_of_mesh_fields<double>(location::vertex, isize,
+                                                        jsize, nhalo));
+#else
+    m_x = (double *)malloc(
+        size_of_mesh_fields<double>(location::vertex, isize, jsize, nhalo));
+    m_y = (double *)malloc(
+        size_of_mesh_fields<double>(location::vertex, isize, jsize, nhalo));
+#endif
+  }
+  size_t last_compute_domain_idx() { return m_isize * m_jsize; }
+
+  virtual size_t idx(int i, unsigned int c, int j) {
+    if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize)
+      return i + c * m_isize + j * m_isize * num_colors(location::vertex);
+    if (i == (int)m_isize && j >= 0 && j < (int)m_jsize)
+      return last_compute_domain_idx() + j;
+    if (j == (int)m_jsize && i >= 0)
+      return last_compute_domain_idx() + m_jsize + i;
+    if (i < 0 && j >= 0 && j < (int)m_jsize)
+      return last_compute_domain_idx() + m_jsize + m_isize + 1 - i +
+             c * m_nhalo + j * m_nhalo * num_colors(location::vertex);
+    if (j < 0 && i < (int)m_isize)
+      return last_compute_domain_idx() + m_jsize + m_isize + 1 +
+             m_nhalo * num_colors(location::vertex) * m_jsize +
+             (j + (int)m_nhalo) + c * m_nhalo;
+    // TODO
+    return -1;
+  }
+  double &x(unsigned int idx) { return m_x[idx]; }
+  double &y(unsigned int idx) { return m_y[idx]; }
+
+private:
+  size_t m_isize, m_jsize, m_nhalo;
+  double *m_x;
+  double *m_y;
+  neighbours_table m_vertex_to_cell;
+  neighbours_table m_vertex_to_edge;
+  neighbours_table m_vertex_to_vertex;
+};
+
+//////////////// conventions ///////////////////
+/// cell to vertex
+/// 0 -------- 1
+///   \      /
+///    \    /
+///     \  /
+///      2
+
+///
+///      0
+///     / \
+///    /   \
+///   /     \
+///  2-------1
 
 class mesh {
 
@@ -129,8 +255,8 @@ class mesh {
 public:
   mesh(const unsigned int isize, const unsigned int jsize,
        const unsigned int nhalo)
-      : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo), m_extisize(isize),
-        m_extjsize(jsize),
+      : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo), m_i_domain{0, isize},
+        m_j_domain{0, jsize},
         m_cell_to_cells(location::cell, location::cell, isize, jsize, nhalo),
         m_cell_to_edges(location::cell, location::edge, isize, jsize, nhalo),
         m_cell_to_vertices(location::cell, location::vertex, isize, jsize,
@@ -284,11 +410,12 @@ public:
         //    for (size_t j = 0; j < m_jsize; ++j) {
         //      double x = m_isize + j * 0.5;
         //      double y = j;
-        //      ss << end_idx_compute_domain() + j + 1 << " " << x << " " << y
+        //      ss << end_idx_compute_domain() + j + 1 << " " << x << " " <<
+        //      y
         //      << " 1"
       }
     }
-    // add first line halo on the East
+    // add first line artificial nodes halo on the East
     m_curr_idx = end_idx_compute_domain();
     for (size_t j = 0; j < jsize; ++j) {
       m_cell_to_vertices(isize - 1, 0, j, 1) = m_curr_idx + j;
@@ -304,10 +431,11 @@ public:
       m_y[m_curr_idx + j] = j;
     }
     m_curr_idx += jsize;
-    m_extisize++;
+    m_i_domain[1]++;
+    m_j_domain[1]++;
 
-    // add first line halo on the North
-    for (size_t i = 0; i < m_extisize; ++i) {
+    // add first line artificial nodes halo on the North
+    for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
       std::cout << "KKB  " << i << " " << m_cell_to_vertices(0, 1, 5, 0) << " "
                 << m_cell_to_vertices(0, 1, 5, 1) << " "
                 << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
@@ -333,13 +461,39 @@ public:
       m_x[m_curr_idx + i] = i + m_jsize * 0.5;
       m_y[m_curr_idx + i] = m_jsize;
     }
-
     std::cout << "KKH  " << m_cell_to_vertices(0, 1, 5, 0) << " "
               << m_cell_to_vertices(0, 1, 5, 1) << " "
               << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
 
-    m_curr_idx += m_extisize;
-    m_extjsize++;
+    m_curr_idx += m_i_domain[1] - m_i_domain[0];
+    //    m_j_domain[1]++;
+
+    // add first line real halo on the West
+    // add first line artificial nodes halo on the North
+    for (int j = m_j_domain[0]; j < m_j_domain[1]; ++j) {
+      m_cell_to_vertices(-1, 1, j, 0) = m_curr_idx + j + 1;
+      m_cell_to_vertices(-1, 1, j, 1) = m_cell_to_vertices(0, 1, j, 0);
+      m_cell_to_vertices(-1, 1, j, 2) = m_cell_to_vertices(0, 0, j, 2);
+
+      m_cell_to_vertices(-1, 0, j, 0) = m_curr_idx + j + 1;
+      m_cell_to_vertices(-1, 0, j, 1) = m_cell_to_vertices(0, 0, j, 2);
+      m_cell_to_vertices(-1, 0, j, 2) = m_curr_idx + j;
+
+      m_x[m_curr_idx + j] = j * 0.5 - 1;
+      m_y[m_curr_idx + j] = j;
+    }
+    m_curr_idx += m_j_domain[1] - m_j_domain[0];
+    m_j_domain[1]--;
+  }
+
+  size_t element_index(location primary_loc, int i, unsigned int c, int j) {
+    assert(i > -(int)(m_nhalo) && i < (int)(m_isize + m_nhalo));
+    assert(c < num_colors(primary_loc));
+    assert(j > -(int)(m_nhalo) && j < (int)(m_jsize + m_nhalo));
+
+    return (i + (int)m_nhalo) + c * (m_isize + m_nhalo * 2) +
+           (j + (int)m_nhalo) * (m_isize + m_nhalo * 2) *
+               num_colors(primary_loc);
   }
 
   size_t index(location primary_loc, unsigned int i, unsigned int c,
@@ -358,7 +512,8 @@ public:
        << "$EndMeshFormat" << std::endl;
 
     ss << "$Nodes" << std::endl;
-    ss << num_nodes(m_isize, m_jsize, 0) + m_jsize + m_isize + 1 << std::endl;
+    ss << m_curr_idx << std::endl; // num_nodes(m_isize + 1, m_jsize + 1, 0)
+                                   // + 1 << std::endl;
 
     for (size_t i = 0; i < m_curr_idx; ++i) {
       ss << i + 1 << " " << m_x[i] << " " << m_y[i] << " 1 " << std::endl;
@@ -367,14 +522,16 @@ public:
     //      for (size_t i = 0; i < m_isize; ++i) {
     //        ss << index(location::vertex, i, 0, j) + 1 << " "
     //           << m_x[index(location::vertex, i, 0, j)] << " "
-    //           << m_y[index(location::vertex, i, 0, j)] << " 1" << std::endl;
+    //           << m_y[index(location::vertex, i, 0, j)] << " 1" <<
+    //           std::endl;
     //      }
     //    }
 
     //    for (size_t j = 0; j < m_jsize; ++j) {
     //      double x = m_isize + j * 0.5;
     //      double y = j;
-    //      ss << end_idx_compute_domain() + j + 1 << " " << x << " " << y << "
+    //      ss << end_idx_compute_domain() + j + 1 << " " << x << " " << y
+    //      << "
     //      1 "
     //         << std::endl;
     //    }
@@ -388,42 +545,48 @@ public:
 
     ss << "$EndNodes" << std::endl;
     ss << "$Elements" << std::endl;
-    ss << num_nodes(m_isize, m_jsize, 0) * 2 +
-              num_nodes(m_isize, m_jsize, 0) * 3
+    ss << num_nodes(m_isize + 1, m_jsize, 0) * 2 // edges
+       // + num_nodes(m_isize, m_jsize, 0) * 3
        << std::endl;
 
     std::cout << "KK  " << m_cell_to_vertices(0, 1, 5, 0) << " "
               << m_cell_to_vertices(0, 1, 5, 1) << " "
               << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
     for (size_t j = 0; j < m_jsize; ++j) {
-      for (size_t i = 0; i < m_isize; ++i) {
-        ss << index(location::cell, i, 0, j) + 1 << " 2 4 1 1 1 28 "
+      for (int i = -1; i < (int)m_isize; ++i) {
+        ss << element_index(location::cell, i, 0, j) + 1 << " 2 4 1 1 1 28 "
            << m_cell_to_vertices(i, 0, j, 0) + 1 << " "
            << m_cell_to_vertices(i, 0, j, 1) + 1 << " "
            << m_cell_to_vertices(i, 0, j, 2) + 1 << std::endl;
 
-        ss << index(location::cell, i, 1, j) + 1 << " 2 4 1 1 1 28 "
+        ss << element_index(location::cell, i, 1, j) + 1 << " 2 4 1 1 1 28 "
            << m_cell_to_vertices(i, 1, j, 0) + 1 << " "
            << m_cell_to_vertices(i, 1, j, 1) + 1 << " "
            << m_cell_to_vertices(i, 1, j, 2) + 1 << std::endl;
       }
     }
 
-    // print the edges
-    for (size_t j = 0; j < m_jsize; ++j) {
-      for (size_t i = 0; i < m_isize; ++i) {
-        ss << index(location::edge, i, 0, j) + 1 + 10000 << " 1 4 1 1 1 28 "
-           << m_edge_to_vertices(i, 0, j, 0) + 1 << " "
-           << m_edge_to_vertices(i, 0, j, 1) + 1 << std::endl;
+    //    // print the edges
+    //    for (size_t j = 0; j < m_jsize; ++j) {
+    //      for (size_t i = 0; i < m_isize; ++i) {
+    //        ss << index(location::edge, i, 0, j) + 1 + 10000 << " 1 4 1 1
+    //        1 28
+    //        "
+    //           << m_edge_to_vertices(i, 0, j, 0) + 1 << " "
+    //           << m_edge_to_vertices(i, 0, j, 1) + 1 << std::endl;
 
-        ss << index(location::edge, i, 1, j) + 1 + 10000 << " 1 4 1 1 1 28 "
-           << m_edge_to_vertices(i, 1, j, 0) + 1 << " "
-           << m_edge_to_vertices(i, 1, j, 1) + 1 << std::endl;
-        ss << index(location::edge, i, 2, j) + 1 + 10000 << " 1 4 1  1 1 28 "
-           << m_edge_to_vertices(i, 2, j, 0) + 1 << " "
-           << m_edge_to_vertices(i, 2, j, 1) + 1 << std::endl;
-      }
-    }
+    //        ss << index(location::edge, i, 1, j) + 1 + 10000 << " 1 4 1 1
+    //        1 28
+    //        "
+    //           << m_edge_to_vertices(i, 1, j, 0) + 1 << " "
+    //           << m_edge_to_vertices(i, 1, j, 1) + 1 << std::endl;
+    //        ss << index(location::edge, i, 2, j) + 1 + 10000 << " 1 4 1  1
+    //        1
+    //        28 "
+    //           << m_edge_to_vertices(i, 2, j, 0) + 1 << " "
+    //           << m_edge_to_vertices(i, 2, j, 1) + 1 << std::endl;
+    //      }
+    //    }
 
     ss << "$EndElements" << std::endl;
     std::ofstream msh_file;
@@ -433,7 +596,8 @@ public:
   }
 
 private:
-  size_t m_isize, m_jsize, m_nhalo, m_extisize, m_extjsize;
+  size_t m_isize, m_jsize, m_nhalo;
+  std::array<int, 2> m_i_domain, m_j_domain;
   size_t m_curr_idx;
   double *m_x;
   double *m_y;
