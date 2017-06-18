@@ -123,6 +123,7 @@ class elements {
            sizeof(size_t);
   }
 
+public:
   elements(location primary_loc, size_t isize, size_t jsize, size_t nhalo)
       : m_loc(primary_loc), m_isize(isize), m_jsize(jsize), m_nhalo(nhalo),
         m_elements_to_cells(primary_loc, location::cell, isize, jsize, nhalo),
@@ -141,8 +142,16 @@ class elements {
     if (neigh_loc == location::cell)
       return m_elements_to_cells(i, c, j, neigh_idx);
     else if (neigh_loc == location::edge)
-      return m_elements_to_cells(i, c, j, neigh_idx);
+      return m_elements_to_edges(i, c, j, neigh_idx);
     return m_elements_to_vertices(i, c, j, neigh_idx);
+  }
+
+  neighbours_table &table(location neigh_loc) {
+    if (neigh_loc == location::cell)
+      return m_elements_to_cells;
+    else if (neigh_loc == location::edge)
+      return m_elements_to_edges;
+    return m_elements_to_vertices;
   }
 
   size_t last_compute_domain_idx() { return m_isize * m_jsize; }
@@ -177,12 +186,15 @@ class nodes {
     return num_nodes(isize, jsize, nhalo) * num_colors(loc) * sizeof(T);
   }
 
+public:
   nodes(size_t isize, size_t jsize, size_t nhalo)
       : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo),
-        m_vertex_to_cell(location::vertex, location::cell, isize, jsize, nhalo),
-        m_vertex_to_edge(location::vertex, location::edge, isize, jsize, nhalo),
-        m_vertex_to_vertex(location::vertex, location::vertex, isize, jsize,
-                           nhalo) {
+        m_vertex_to_cells(location::vertex, location::cell, isize, jsize,
+                          nhalo),
+        m_vertex_to_edges(location::vertex, location::edge, isize, jsize,
+                          nhalo),
+        m_vertex_to_vertices(location::vertex, location::vertex, isize, jsize,
+                             nhalo) {
 #ifdef ENABLE_GPU
     cudaMallocManaged(&m_x, size_of_mesh_fields<double>(location::vertex, isize,
                                                         jsize, nhalo));
@@ -214,6 +226,15 @@ class nodes {
     // TODO
     return -1;
   }
+  size_t &neighbor(location neigh_loc, int i, unsigned int c, int j,
+                   unsigned int neigh_idx) {
+    if (neigh_loc == location::cell)
+      return m_vertex_to_cells(i, c, j, neigh_idx);
+    else if (neigh_loc == location::edge)
+      return m_vertex_to_edges(i, c, j, neigh_idx);
+    return m_vertex_to_vertices(i, c, j, neigh_idx);
+  }
+
   double &x(unsigned int idx) { return m_x[idx]; }
   double &y(unsigned int idx) { return m_y[idx]; }
 
@@ -221,9 +242,9 @@ private:
   size_t m_isize, m_jsize, m_nhalo;
   double *m_x;
   double *m_y;
-  neighbours_table m_vertex_to_cell;
-  neighbours_table m_vertex_to_edge;
-  neighbours_table m_vertex_to_vertex;
+  neighbours_table m_vertex_to_cells;
+  neighbours_table m_vertex_to_edges;
+  neighbours_table m_vertex_to_vertices;
 };
 
 //////////////// conventions ///////////////////
@@ -256,21 +277,9 @@ public:
   mesh(const unsigned int isize, const unsigned int jsize,
        const unsigned int nhalo)
       : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo), m_i_domain{0, isize},
-        m_j_domain{0, jsize},
-        m_cell_to_cells(location::cell, location::cell, isize, jsize, nhalo),
-        m_cell_to_edges(location::cell, location::edge, isize, jsize, nhalo),
-        m_cell_to_vertices(location::cell, location::vertex, isize, jsize,
-                           nhalo),
-        m_edge_to_cells(location::edge, location::cell, isize, jsize, nhalo),
-        m_edge_to_edges(location::edge, location::edge, isize, jsize, nhalo),
-        m_edge_to_vertices(location::edge, location::vertex, isize, jsize,
-                           nhalo),
-        m_vertex_to_cells(location::vertex, location::cell, isize, jsize,
-                          nhalo),
-        m_vertex_to_edges(location::vertex, location::edge, isize, jsize,
-                          nhalo),
-        m_vertex_to_vertices(location::vertex, location::vertex, isize, jsize,
-                             nhalo) {
+        m_j_domain{0, jsize}, m_cells(location::cell, isize, jsize, nhalo),
+        m_edges(location::edge, isize, jsize, nhalo),
+        m_nodes(isize, jsize, nhalo) {
 #ifdef ENABLE_GPU
     cudaMallocManaged(&m_x, size_of_mesh_fields<double>(location::vertex, isize,
                                                         jsize, nhalo));
@@ -287,119 +296,170 @@ public:
       for (size_t j = 0; j < jsize; ++j) {
         // cell to cell
         if (i > 0)
-          m_cell_to_cells(i, 0, j, 0) = index(location::cell, i - 1, 1, j);
-        m_cell_to_cells(i, 0, j, 1) = index(location::cell, i, 1, j);
+          m_cells.neighbor(location::cell, i, 0, j, 0) =
+              index(location::cell, i - 1, 1, j);
+        m_cells.neighbor(location::cell, i, 0, j, 1) =
+            index(location::cell, i, 1, j);
         if (j > 0)
-          m_cell_to_cells(i, 0, j, 2) = index(location::cell, i, 1, j - 1);
+          m_cells.neighbor(location::cell, i, 0, j, 2) =
+              index(location::cell, i, 1, j - 1);
 
         if (i < isize - 1)
-          m_cell_to_cells(i, 1, j, 0) = index(location::cell, i + 1, 0, j);
-        m_cell_to_cells(i, 1, j, 1) = index(location::cell, i, 0, j);
+          m_cells.neighbor(location::cell, i, 1, j, 0) =
+              index(location::cell, i + 1, 0, j);
+        m_cells.neighbor(location::cell, i, 1, j, 1) =
+            index(location::cell, i, 0, j);
         if (j < jsize - 1)
-          m_cell_to_cells(i, 1, j, 2) = index(location::cell, i, 0, j + 1);
+          m_cells.neighbor(location::cell, i, 1, j, 2) =
+              index(location::cell, i, 0, j + 1);
 
         // cell to edge
-        m_cell_to_edges(i, 0, j, 0) = index(location::edge, i, 1, j);
-        m_cell_to_edges(i, 0, j, 1) = index(location::edge, i, 2, j);
-        m_cell_to_edges(i, 0, j, 2) = index(location::edge, i, 0, j);
+        m_cells.neighbor(location::edge, i, 0, j, 0) =
+            index(location::edge, i, 1, j);
+        m_cells.neighbor(location::edge, i, 0, j, 1) =
+            index(location::edge, i, 2, j);
+        m_cells.neighbor(location::edge, i, 0, j, 2) =
+            index(location::edge, i, 0, j);
 
         if (i < isize - 1)
-          m_cell_to_edges(i, 1, j, 0) = index(location::edge, i + 1, 1, j);
-        m_cell_to_edges(i, 1, j, 1) = index(location::edge, i, 2, j);
+          m_cells.neighbor(location::edge, i, 1, j, 0) =
+              index(location::edge, i + 1, 1, j);
+        m_cells.neighbor(location::edge, i, 1, j, 1) =
+            index(location::edge, i, 2, j);
         if (j < jsize - 1)
-          m_cell_to_edges(i, 1, j, 2) = index(location::edge, i, 0, j + 1);
+          m_cells.neighbor(location::edge, i, 1, j, 2) =
+              index(location::edge, i, 0, j + 1);
 
         if (j < jsize - 1)
-          m_cell_to_vertices(i, 0, j, 0) = index(location::vertex, i, 0, j + 1);
+          m_cells.neighbor(location::vertex, i, 0, j, 0) =
+              index(location::vertex, i, 0, j + 1);
 
         if (i < isize - 1)
-          m_cell_to_vertices(i, 0, j, 1) = index(location::vertex, i + 1, 0, j);
-        m_cell_to_vertices(i, 0, j, 2) = index(location::vertex, i, 0, j);
+          m_cells.neighbor(location::vertex, i, 0, j, 1) =
+              index(location::vertex, i + 1, 0, j);
+        m_cells.neighbor(location::vertex, i, 0, j, 2) =
+            index(location::vertex, i, 0, j);
 
         if (j < jsize - 1)
-          m_cell_to_vertices(i, 1, j, 0) = index(location::vertex, i, 0, j + 1);
+          m_cells.neighbor(location::vertex, i, 1, j, 0) =
+              index(location::vertex, i, 0, j + 1);
 
         if (j < jsize - 1 && i < isize - 1)
-          m_cell_to_vertices(i, 1, j, 1) =
+          m_cells.neighbor(location::vertex, i, 1, j, 1) =
               index(location::vertex, i + 1, 0, j + 1);
 
         if (i < isize - 1)
-          m_cell_to_vertices(i, 1, j, 2) = index(location::vertex, i + 1, 0, j);
+          m_cells.neighbor(location::vertex, i, 1, j, 2) =
+              index(location::vertex, i + 1, 0, j);
+
         // edge to edge
         if (j > 0)
-          m_edge_to_edges(i, 0, j, 0) = index(location::edge, i, 2, j - 1);
-        m_edge_to_edges(i, 0, j, 1) = index(location::edge, i, 1, j);
+          m_edges.neighbor(location::edge, i, 0, j, 0) =
+              index(location::edge, i, 2, j - 1);
+        m_edges.neighbor(location::edge, i, 0, j, 1) =
+            index(location::edge, i, 1, j);
         if (j > 0 && i < isize - 1)
-          m_edge_to_edges(i, 0, j, 2) = index(location::edge, i + 1, 1, j - 1);
-        m_edge_to_edges(i, 0, j, 3) = index(location::edge, i, 2, j);
-        m_edge_to_edges(i, 1, j, 0) = index(location::edge, i, 0, j);
+          m_edges.neighbor(location::edge, i, 0, j, 2) =
+              index(location::edge, i + 1, 1, j - 1);
+        m_edges.neighbor(location::edge, i, 0, j, 3) =
+            index(location::edge, i, 2, j);
+        m_edges.neighbor(location::edge, i, 1, j, 0) =
+            index(location::edge, i, 0, j);
         if (i > 0)
-          m_edge_to_edges(i, 1, j, 1) = index(location::edge, i - 1, 2, j);
+          m_edges.neighbor(location::edge, i, 1, j, 1) =
+              index(location::edge, i - 1, 2, j);
         if (i > 0 && j < jsize - 1)
-          m_edge_to_edges(i, 1, j, 2) = index(location::edge, i - 1, 0, j + 1);
-        m_edge_to_edges(i, 1, j, 3) = index(location::edge, i, 2, j);
-        m_edge_to_edges(i, 2, j, 0) = index(location::edge, i, 0, j);
-        m_edge_to_edges(i, 2, j, 1) = index(location::edge, i, 1, j);
+          m_edges.neighbor(location::edge, i, 1, j, 2) =
+              index(location::edge, i - 1, 0, j + 1);
+        m_edges.neighbor(location::edge, i, 1, j, 3) =
+            index(location::edge, i, 2, j);
+        m_edges.neighbor(location::edge, i, 2, j, 0) =
+            index(location::edge, i, 0, j);
+        m_edges.neighbor(location::edge, i, 2, j, 1) =
+            index(location::edge, i, 1, j);
         if (i < isize - 1)
-          m_edge_to_edges(i, 2, j, 2) = index(location::edge, i + 1, 1, j);
+          m_edges.neighbor(location::edge, i, 2, j, 2) =
+              index(location::edge, i + 1, 1, j);
         if (j < jsize - 1)
-          m_edge_to_edges(i, 2, j, 3) = index(location::edge, i, 0, j + 1);
+          m_edges.neighbor(location::edge, i, 2, j, 3) =
+              index(location::edge, i, 0, j + 1);
 
         if (j > 0)
-          m_edge_to_cells(i, 0, j, 0) = index(location::cell, i, 1, j - 1);
-        m_edge_to_cells(i, 0, j, 1) = index(location::cell, i, 0, j);
+          m_edges.neighbor(location::cell, i, 0, j, 0) =
+              index(location::cell, i, 1, j - 1);
+        m_edges.neighbor(location::cell, i, 0, j, 1) =
+            index(location::cell, i, 0, j);
         if (i > 0)
-          m_edge_to_cells(i, 1, j, 0) = index(location::cell, i - 1, 1, j);
-        m_edge_to_cells(i, 1, j, 1) = index(location::cell, i, 0, j);
+          m_edges.neighbor(location::cell, i, 1, j, 0) =
+              index(location::cell, i - 1, 1, j);
+        m_edges.neighbor(location::cell, i, 1, j, 1) =
+            index(location::cell, i, 0, j);
 
-        m_edge_to_cells(i, 2, j, 0) = index(location::cell, i, 1, j);
-        m_edge_to_cells(i, 2, j, 1) = index(location::cell, i, 0, j);
-
-        if (i < isize - 1)
-          m_edge_to_vertices(i, 0, j, 0) = index(location::vertex, i + 1, 0, j);
-
-        m_edge_to_vertices(i, 0, j, 1) = index(location::vertex, i, 0, j);
-
-        m_edge_to_vertices(i, 1, j, 0) = index(location::vertex, i, 0, j);
-
-        if (j < jsize - 1)
-          m_edge_to_vertices(i, 1, j, 1) = index(location::vertex, i, 0, j + 1);
-
-        if (j < jsize - 1)
-          m_edge_to_vertices(i, 2, j, 0) = index(location::vertex, i, 0, j + 1);
+        m_edges.neighbor(location::cell, i, 2, j, 0) =
+            index(location::cell, i, 1, j);
+        m_edges.neighbor(location::cell, i, 2, j, 1) =
+            index(location::cell, i, 0, j);
 
         if (i < isize - 1)
-          m_edge_to_vertices(i, 2, j, 1) = index(location::vertex, i + 1, 0, j);
+          m_edges.neighbor(location::vertex, i, 0, j, 0) =
+              index(location::vertex, i + 1, 0, j);
+
+        m_edges.neighbor(location::vertex, i, 0, j, 1) =
+            index(location::vertex, i, 0, j);
+
+        m_edges.neighbor(location::vertex, i, 1, j, 0) =
+            index(location::vertex, i, 0, j);
+
+        if (j < jsize - 1)
+          m_edges.neighbor(location::vertex, i, 1, j, 1) =
+              index(location::vertex, i, 0, j + 1);
+
+        if (j < jsize - 1)
+          m_edges.neighbor(location::vertex, i, 2, j, 0) =
+              index(location::vertex, i, 0, j + 1);
+
+        if (i < isize - 1)
+          m_edges.neighbor(location::vertex, i, 2, j, 1) =
+              index(location::vertex, i + 1, 0, j);
 
         if (j > 0)
-          m_vertex_to_vertices(i, 0, j, 0) =
+          m_nodes.neighbor(location::vertex, i, 0, j, 0) =
               index(location::vertex, i, 0, j - 1);
         if (j < jsize - 1)
-          m_vertex_to_vertices(i, 0, j, 1) =
+          m_nodes.neighbor(location::vertex, i, 0, j, 1) =
               index(location::vertex, i, 0, j + 1);
         if (i < isize - 1)
-          m_vertex_to_vertices(i, 0, j, 2) =
+          m_nodes.neighbor(location::vertex, i, 0, j, 2) =
               index(location::vertex, i + 1, 0, j);
         if (i > 0)
-          m_vertex_to_vertices(i, 0, j, 3) =
+          m_nodes.neighbor(location::vertex, i, 0, j, 3) =
               index(location::vertex, i - 1, 0, j);
         if (i < isize - 1 && j > 0)
-          m_vertex_to_vertices(i, 0, j, 4) =
+          m_nodes.neighbor(location::vertex, i, 0, j, 4) =
               index(location::vertex, i + 1, 0, j - 1);
         if (i > 0 && j < jsize - 1)
-          m_vertex_to_vertices(i, 0, j, 5) =
+          m_nodes.neighbor(location::vertex, i, 0, j, 5) =
               index(location::vertex, i - 1, 0, j + 1);
 
         if (j > 0)
-          m_vertex_to_edges(i, 0, j, 0) = index(location::edge, i, 1, j - 1);
+          m_nodes.neighbor(location::edge, i, 0, j, 0) =
+              index(location::edge, i, 1, j - 1);
         if (i > 0)
-          m_vertex_to_edges(i, 0, j, 1) = index(location::edge, i - 1, 0, j);
+          m_nodes.neighbor(location::edge, i, 0, j, 1) =
+              index(location::edge, i - 1, 0, j);
         if (i > 0)
-          m_vertex_to_edges(i, 0, j, 2) = index(location::edge, i - 1, 2, j);
-        m_vertex_to_edges(i, 0, j, 3) = index(location::edge, i, 1, j);
-        m_vertex_to_edges(i, 0, j, 4) = index(location::edge, i, 0, j);
+          m_nodes.neighbor(location::edge, i, 0, j, 2) =
+              index(location::edge, i - 1, 2, j);
+        m_nodes.neighbor(location::edge, i, 0, j, 3) =
+            index(location::edge, i, 1, j);
+        m_nodes.neighbor(location::edge, i, 0, j, 4) =
+            index(location::edge, i, 0, j);
         if (j > 0)
-          m_vertex_to_edges(i, 0, j, 5) = index(location::edge, i, 2, j - 1);
+          m_nodes.neighbor(location::edge, i, 0, j, 5) =
+              index(location::edge, i, 2, j - 1);
+
+        m_nodes.x(index(location::vertex, i, 0, j)) = i + j * 0.5;
+        m_nodes.y(index(location::vertex, i, 0, j)) = j;
 
         m_x[index(location::vertex, i, 0, j)] = i + j * 0.5;
         m_y[index(location::vertex, i, 0, j)] = j;
@@ -418,15 +478,27 @@ public:
     // add first line artificial nodes halo on the East
     m_curr_idx = end_idx_compute_domain();
     for (size_t j = 0; j < jsize; ++j) {
-      m_cell_to_vertices(isize - 1, 0, j, 1) = m_curr_idx + j;
+      m_cells.neighbor(location::vertex, isize - 1, 0, j, 1) = m_curr_idx + j;
 
-      m_cell_to_vertices(isize - 1, 1, j, 2) = m_curr_idx + j;
+      m_cells.neighbor(location::vertex, isize - 1, 1, j, 2) = m_curr_idx + j;
 
       if (j > 0)
-        m_cell_to_vertices(isize - 1, 1, j - 1, 1) = m_curr_idx + j;
+        m_cells.neighbor(location::vertex, isize - 1, 1, j - 1, 1) =
+            m_curr_idx + j;
 
-      m_edge_to_vertices(isize - 1, 0, j, 0) = m_curr_idx + j;
-      m_edge_to_vertices(isize - 1, 2, j, 1) = m_curr_idx + j;
+      m_cells.neighbor(location::vertex, isize - 1, 0, j, 1) = m_curr_idx + j;
+
+      m_cells.neighbor(location::vertex, isize - 1, 1, j, 2) = m_curr_idx + j;
+
+      if (j > 0)
+        m_cells.neighbor(location::vertex, isize - 1, 1, j - 1, 1) =
+            m_curr_idx + j;
+
+      m_edges.neighbor(location::vertex, isize - 1, 0, j, 0) = m_curr_idx + j;
+      m_edges.neighbor(location::vertex, isize - 1, 2, j, 1) = m_curr_idx + j;
+
+      m_nodes.x(m_curr_idx + j) = m_isize + j * 0.5;
+      m_nodes.y(m_curr_idx + j) = j;
       m_x[m_curr_idx + j] = m_isize + j * 0.5;
       m_y[m_curr_idx + j] = j;
     }
@@ -436,34 +508,30 @@ public:
 
     // add first line artificial nodes halo on the North
     for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
-      std::cout << "KKB  " << i << " " << m_cell_to_vertices(0, 1, 5, 0) << " "
-                << m_cell_to_vertices(0, 1, 5, 1) << " "
-                << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
+      m_cells.neighbor(location::vertex, i, 0, jsize - 1, 0) = m_curr_idx + i;
 
-      m_cell_to_vertices(i, 0, jsize - 1, 0) = m_curr_idx + i;
-
-      m_cell_to_vertices(i, 1, jsize - 1, 0) = m_curr_idx + i;
+      m_cells.neighbor(location::vertex, i, 1, jsize - 1, 0) = m_curr_idx + i;
       if (i > 0) {
-        std::cout << "KKA  " << m_cell_to_vertices(0, 1, 5, 0) << " "
-                  << m_cell_to_vertices(0, 1, 5, 1) << " "
-                  << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
-
-        m_cell_to_vertices(i - 1, 1, jsize - 1, 1) = m_curr_idx + i;
-        std::cout << "For " << i - 1 << " neigh " << m_curr_idx + i
-                  << std::endl;
-
-        std::cout << "KKG  " << m_cell_to_vertices(0, 1, 5, 0) << " "
-                  << m_cell_to_vertices(0, 1, 5, 1) << " "
-                  << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
+        m_cells.neighbor(location::vertex, i - 1, 1, jsize - 1, 1) =
+            m_curr_idx + i;
       }
-      m_edge_to_vertices(i, 1, jsize - 1, 1) = m_curr_idx + i;
-      m_edge_to_vertices(i, 2, jsize - 1, 0) = m_curr_idx + i;
+
+      m_cells.neighbor(location::vertex, i, 0, jsize - 1, 0) = m_curr_idx + i;
+
+      m_cells.neighbor(location::vertex, i, 1, jsize - 1, 0) = m_curr_idx + i;
+      if (i > 0) {
+        m_cells.neighbor(location::vertex, i - 1, 1, jsize - 1, 1) =
+            m_curr_idx + i;
+      }
+
+      m_edges.neighbor(location::vertex, i, 1, jsize - 1, 1) = m_curr_idx + i;
+      m_edges.neighbor(location::vertex, i, 2, jsize - 1, 0) = m_curr_idx + i;
+      m_nodes.x(m_curr_idx + i) = i + m_jsize * 0.5;
+      m_nodes.y(m_curr_idx + i) = m_jsize;
+
       m_x[m_curr_idx + i] = i + m_jsize * 0.5;
       m_y[m_curr_idx + i] = m_jsize;
     }
-    std::cout << "KKH  " << m_cell_to_vertices(0, 1, 5, 0) << " "
-              << m_cell_to_vertices(0, 1, 5, 1) << " "
-              << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
 
     m_curr_idx += m_i_domain[1] - m_i_domain[0];
     //    m_j_domain[1]++;
@@ -471,13 +539,30 @@ public:
     // add first line real halo on the West
     // add first line artificial nodes halo on the North
     for (int j = m_j_domain[0]; j < m_j_domain[1]; ++j) {
-      m_cell_to_vertices(-1, 1, j, 0) = m_curr_idx + j + 1;
-      m_cell_to_vertices(-1, 1, j, 1) = m_cell_to_vertices(0, 1, j, 0);
-      m_cell_to_vertices(-1, 1, j, 2) = m_cell_to_vertices(0, 0, j, 2);
+      m_cells.neighbor(location::vertex, -1, 1, j, 0) = m_curr_idx + j + 1;
+      m_cells.neighbor(location::vertex, -1, 1, j, 1) =
+          m_cells.neighbor(location::vertex, 0, 1, j, 0);
+      m_cells.neighbor(location::vertex, -1, 1, j, 2) =
+          m_cells.neighbor(location::vertex, 0, 0, j, 2);
 
-      m_cell_to_vertices(-1, 0, j, 0) = m_curr_idx + j + 1;
-      m_cell_to_vertices(-1, 0, j, 1) = m_cell_to_vertices(0, 0, j, 2);
-      m_cell_to_vertices(-1, 0, j, 2) = m_curr_idx + j;
+      m_cells.neighbor(location::vertex, -1, 0, j, 0) = m_curr_idx + j + 1;
+      m_cells.neighbor(location::vertex, -1, 0, j, 1) =
+          m_cells.neighbor(location::vertex, 0, 0, j, 2);
+      m_cells.neighbor(location::vertex, -1, 0, j, 2) = m_curr_idx + j;
+
+      m_cells.neighbor(location::vertex, -1, 1, j, 0) = m_curr_idx + j + 1;
+      m_cells.neighbor(location::vertex, -1, 1, j, 1) =
+          m_cells.neighbor(location::vertex, 0, 1, j, 0);
+      m_cells.neighbor(location::vertex, -1, 1, j, 2) =
+          m_cells.neighbor(location::vertex, 0, 0, j, 2);
+
+      m_cells.neighbor(location::vertex, -1, 0, j, 0) = m_curr_idx + j + 1;
+      m_cells.neighbor(location::vertex, -1, 0, j, 1) =
+          m_cells.neighbor(location::vertex, 0, 0, j, 2);
+      m_cells.neighbor(location::vertex, -1, 0, j, 2) = m_curr_idx + j;
+
+      m_nodes.x(m_curr_idx + j) = j * 0.5 - 1;
+      m_nodes.y(m_curr_idx + j) = j;
 
       m_x[m_curr_idx + j] = j * 0.5 - 1;
       m_y[m_curr_idx + j] = j;
@@ -516,7 +601,7 @@ public:
                                    // + 1 << std::endl;
 
     for (size_t i = 0; i < m_curr_idx; ++i) {
-      ss << i + 1 << " " << m_x[i] << " " << m_y[i] << " 1 " << std::endl;
+      ss << i + 1 << " " << m_nodes.x(i) << " " << m_y[i] << " 1 " << std::endl;
     }
     //    for (size_t j = 0; j < m_jsize; ++j) {
     //      for (size_t i = 0; i < m_isize; ++i) {
@@ -549,20 +634,29 @@ public:
        // + num_nodes(m_isize, m_jsize, 0) * 3
        << std::endl;
 
-    std::cout << "KK  " << m_cell_to_vertices(0, 1, 5, 0) << " "
-              << m_cell_to_vertices(0, 1, 5, 1) << " "
-              << m_cell_to_vertices(0, 1, 5, 2) << std::endl;
     for (size_t j = 0; j < m_jsize; ++j) {
       for (int i = -1; i < (int)m_isize; ++i) {
+        //        ss << element_index(location::cell, i, 0, j) + 1 << " 2 4 1 1
+        //        1 28 "
+        //           << m_cell_to_vertices(i, 0, j, 0) + 1 << " "
+        //           << m_cell_to_vertices(i, 0, j, 1) + 1 << " "
+        //           << m_cell_to_vertices(i, 0, j, 2) + 1 << std::endl;
+
+        //        ss << element_index(location::cell, i, 1, j) + 1 << " 2 4 1 1
+        //        1 28 "
+        //           << m_cell_to_vertices(i, 1, j, 0) + 1 << " "
+        //           << m_cell_to_vertices(i, 1, j, 1) + 1 << " "
+        //           << m_cell_to_vertices(i, 1, j, 2) + 1 << std::endl;
+
         ss << element_index(location::cell, i, 0, j) + 1 << " 2 4 1 1 1 28 "
-           << m_cell_to_vertices(i, 0, j, 0) + 1 << " "
-           << m_cell_to_vertices(i, 0, j, 1) + 1 << " "
-           << m_cell_to_vertices(i, 0, j, 2) + 1 << std::endl;
+           << m_cells.neighbor(location::vertex, i, 0, j, 0) + 1 << " "
+           << m_cells.neighbor(location::vertex, i, 0, j, 1) + 1 << " "
+           << m_cells.neighbor(location::vertex, i, 0, j, 2) + 1 << std::endl;
 
         ss << element_index(location::cell, i, 1, j) + 1 << " 2 4 1 1 1 28 "
-           << m_cell_to_vertices(i, 1, j, 0) + 1 << " "
-           << m_cell_to_vertices(i, 1, j, 1) + 1 << " "
-           << m_cell_to_vertices(i, 1, j, 2) + 1 << std::endl;
+           << m_cells.neighbor(location::vertex, i, 1, j, 0) + 1 << " "
+           << m_cells.neighbor(location::vertex, i, 1, j, 1) + 1 << " "
+           << m_cells.neighbor(location::vertex, i, 1, j, 2) + 1 << std::endl;
       }
     }
 
@@ -602,13 +696,7 @@ private:
   double *m_x;
   double *m_y;
 
-  neighbours_table m_cell_to_cells;
-  neighbours_table m_cell_to_edges;
-  neighbours_table m_cell_to_vertices;
-  neighbours_table m_edge_to_cells;
-  neighbours_table m_edge_to_edges;
-  neighbours_table m_edge_to_vertices;
-  neighbours_table m_vertex_to_cells;
-  neighbours_table m_vertex_to_edges;
-  neighbours_table m_vertex_to_vertices;
+  nodes m_nodes;
+  elements m_cells;
+  elements m_edges;
 };
