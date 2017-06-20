@@ -96,6 +96,14 @@ public:
     return m_data[index_in_tables(i, c, j, neigh_idx)];
   }
 
+  //  size_t &operator()(size_t index, unsigned int neigh_idx) {
+
+  //    assert(index_in_tables(index, neigh_idx) <
+  //           size_of_array(m_ploc, m_nloc, m_isize, m_jsize, m_nhalo));
+
+  //    return m_data[index_in_tables(index, neigh_idx)];
+  //  }
+
   size_t last_compute_domain_idx() {
     return num_neighbours(m_ploc, m_nloc) * (m_isize)*num_colors(m_ploc) *
            (m_jsize);
@@ -121,6 +129,24 @@ public:
                (m_isize + m_nhalo * 2);
   }
 
+  //  size_t index_in_tables(size_t index, unsigned int neigh_idx) {
+  //    if (index < last_compute_domain_idx()) {
+  //      return index + neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
+  //    } else if (index < last_west_halo_idx()) {
+  //      return index + neigh_idx * m_jsize * m_nhalo * num_colors(m_ploc);
+  //    } else if (index < last_south_halo_idx()) {
+  //      return index +
+  //             neigh_idx * m_nhalo * (m_nhalo + m_isize) * num_colors(m_ploc);
+  //    } else if (index < last_east_halo_idx()) {
+  //      return index +
+  //             neigh_idx * (m_nhalo + m_jsize) * m_nhalo * num_colors(m_ploc);
+  //    } else if (index < last_north_halo_idx()) {
+  //      return index +
+  //             neigh_idx * m_nhalo * num_colors(m_ploc) * (m_isize + m_nhalo *
+  //             2);
+  //    }
+  //    return 0;
+  //  }
   size_t index_in_tables(int i, unsigned int c, int j, unsigned int neigh_idx) {
     assert(i >= -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
     assert(c < num_colors(m_ploc));
@@ -218,7 +244,10 @@ public:
       return m_elements_to_cells(i, c, j, neigh_idx);
     else if (neigh_loc == location::edge)
       return m_elements_to_edges(i, c, j, neigh_idx);
+
     return m_elements_to_vertices(i, c, j, neigh_idx);
+
+    //    return m_elements_to_vertices(index(i, c, j), neigh_idx);
   }
 
   neighbours_table &table(location neigh_loc) {
@@ -732,29 +761,39 @@ public:
 
       m_i_domain[1]++;
     }
-    //    // add first line real halo on the North
-    //    for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
-    //      int j = m_jsize;
-    //      m_cells.neighbor(location::vertex, i, 1, j, 0) = m_curr_idx + i + 1;
-    //      m_cells.neighbor(location::vertex, i, 1, j, 1) = m_curr_idx + i + 1
-    //      + 1;
-    //      m_cells.neighbor(location::vertex, i, 1, j, 2) =
-    //          m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
 
-    //      m_cells.neighbor(location::vertex, i, 0, j, 0) = m_curr_idx + i + 1;
-    //      m_cells.neighbor(location::vertex, i, 0, j, 1) =
-    //          m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
-    //      m_cells.neighbor(location::vertex, i, 0, j, 2) =
-    //          m_cells.neighbor(location::vertex, i, 1, j - 1, 0);
+    // add first line real halo on the North
+    for (int c = 0; c < m_nhalo; ++c) {
 
-    //      m_nodes.x(m_curr_idx + (i - m_i_domain[0])) = i + 1.5 + m_jsize *
-    //      0.5;
-    //      m_nodes.y(m_curr_idx + (i - m_i_domain[0])) = m_jsize + 1;
-    //    }
-    //    m_curr_idx += m_i_domain[1] - m_i_domain[0];
-    //    m_j_domain[1]++;
+      for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
+        int j = m_jsize + c;
+        m_cells.neighbor(location::vertex, i, 1, j, 0) =
+            m_curr_idx + (i - m_i_domain[0]);
+        m_cells.neighbor(location::vertex, i, 1, j, 1) =
+            m_curr_idx + (i - m_i_domain[0]) + 1;
+        m_cells.neighbor(location::vertex, i, 1, j, 2) =
+            m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
+
+        m_cells.neighbor(location::vertex, i, 0, j, 0) =
+            m_curr_idx + (i - m_i_domain[0]);
+        m_cells.neighbor(location::vertex, i, 0, j, 1) =
+            m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
+        m_cells.neighbor(location::vertex, i, 0, j, 2) =
+            m_cells.neighbor(location::vertex, i, 1, j - 1, 0);
+
+        m_nodes.x(m_curr_idx + (i - m_i_domain[0])) =
+            i + 0.5 + m_j_domain[1] * 0.5;
+        m_nodes.y(m_curr_idx + (i - m_i_domain[0])) = m_j_domain[1] + 1;
+      }
+      m_curr_idx += m_i_domain[1] - m_i_domain[0];
+      m_nodes.x(m_curr_idx) = m_i_domain[1] + (m_j_domain[1] + 1) * 0.5;
+      m_nodes.y(m_curr_idx) = m_j_domain[1] + 1;
+
+      m_curr_idx++;
+
+      m_j_domain[1]++;
+    }
   }
-
   size_t element_index(location primary_loc, int i, unsigned int c, int j) {
     assert(i > -(int)(m_nhalo) && i < (int)(m_isize + m_nhalo));
     assert(c < num_colors(primary_loc));
@@ -792,15 +831,13 @@ public:
     ss << "$EndNodes" << std::endl;
     ss << "$Elements" << std::endl;
     //    ss << num_nodes(m_isize + 3, m_jsize + 3, 0) * 2 // edges
-    ss << num_nodes(m_isize + 4, m_jsize + 2, 0) * 2 // edges
+    ss << num_nodes(m_isize + m_nhalo * 2, m_jsize + m_nhalo * 2, 0) *
+              2 // edges
        // + num_nodes(m_isize, m_jsize, 0) * 3
        << std::endl;
 
-    //    for (int j = -2; j < (int)m_jsize + 1; ++j) {
-    //      for (int i = -2; i < (int)m_isize + 1; ++i) {
-
-    for (int j = -2; j < (int)m_jsize; ++j) {
-      for (int i = -2; i < (int)m_isize + 2; ++i) {
+    for (int j = -m_nhalo; j < (int)m_jsize + (int)m_nhalo; ++j) {
+      for (int i = -m_nhalo; i < (int)m_isize + (int)m_nhalo; ++i) {
 
         ss << m_cells.index(i, 0, j) + 1 << " 2 4 1 1 1 28 "
            << m_cells.neighbor(location::vertex, i, 0, j, 0) + 1 << " "
