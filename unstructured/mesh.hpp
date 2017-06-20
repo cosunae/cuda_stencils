@@ -71,7 +71,7 @@ public:
                                         const unsigned int isize,
                                         const unsigned int jsize,
                                         const unsigned int nhalo) {
-    return num_nodes(isize, jsize, nhalo) * num_colors(primary_loc) *
+    return num_nodes(isize, jsize, nhalo + 1) * num_colors(primary_loc) *
            sizeof(size_t) * num_neighbours(primary_loc, neigh_loc);
   }
 
@@ -115,55 +115,68 @@ public:
            num_neighbours(m_ploc, m_nloc) * (m_nhalo + m_jsize) * m_nhalo *
                num_colors(m_ploc);
   }
+  size_t last_north_halo_idx() {
+    return last_east_halo_idx() +
+           num_neighbours(m_ploc, m_nloc) * m_nhalo * num_colors(m_ploc) *
+               (m_isize + m_nhalo * 2);
+  }
+
   size_t index_in_tables(int i, unsigned int c, int j, unsigned int neigh_idx) {
-    assert(i > -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
+    assert(i >= -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
     assert(c < num_colors(m_ploc));
-    assert(j > -(int)m_nhalo && j < (int)(m_jsize + m_nhalo));
+    assert(j >= -(int)m_nhalo && j < (int)(m_jsize + m_nhalo));
     assert(neigh_idx < num_neighbours(m_ploc, m_nloc));
 
     if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize) {
-      if (m_ploc == location::cell && m_nloc == location::vertex && i == 0 &&
-          j == 0)
-        std::cout << "CORE " << i << " " << c << " " << j << " " << neigh_idx
-                  << ";"
-                  << i + c * m_isize + j * num_colors(m_ploc) * m_isize +
-                         neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize)
-                  << std::endl;
-      return i + c * m_isize + j * num_colors(m_ploc) * m_isize +
-             neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
+      int idx = i + c * m_isize + j * num_colors(m_ploc) * m_isize +
+                neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
+      if (idx >= last_compute_domain_idx()) {
+        std::cout << "WARNING IN COMPUTE DOMAIN : " << i << "," << c << "," << j
+                  << "," << neigh_idx << ": " << last_compute_domain_idx()
+                  << " -> " << idx << std::endl;
+      }
+      return idx;
     }
     if (i < 0 && j >= 0 && j < (int)m_jsize) {
-      if (m_ploc == location::cell && m_nloc == location::vertex && i == 0 &&
-          j == 0)
-        std::cout << "FOR " << i << " " << last_compute_domain_idx() << " ; "
-                  << (int)m_ploc << " " << (int)m_nloc << " "
-                  << num_colors(m_nloc) << " " << num_colors(m_ploc) << " : "
-                  << (int)last_compute_domain_idx() - i + c * m_nhalo +
-                         j * m_nhalo * num_colors(m_ploc) +
-                         neigh_idx * m_jsize * m_nhalo * num_colors(m_ploc)
-                  << " "
-                  << size_of_array(m_ploc, m_nloc, m_isize, m_jsize, m_nhalo)
+      int idx = (int)last_compute_domain_idx() - i - 1 + c * m_nhalo +
+                j * m_nhalo * num_colors(m_ploc) +
+                neigh_idx * m_jsize * m_nhalo * num_colors(m_ploc);
+      if (idx >= last_west_halo_idx())
+        std::cout << "WARNING IN WEST : " << i << "," << c << "," << j << ","
+                  << neigh_idx << ": " << last_west_halo_idx() << " -> " << idx
                   << std::endl;
-      return (int)last_compute_domain_idx() - i + c * m_nhalo +
-             j * m_nhalo * num_colors(m_ploc) +
-             neigh_idx * m_jsize * m_nhalo * num_colors(m_ploc);
+
+      return idx;
     }
     if (j < 0 && i < (int)m_isize) {
-      return last_west_halo_idx() + i + c * (m_nhalo + m_isize) +
-             (-j) * (m_nhalo + m_isize) * num_colors(m_ploc) +
-             neigh_idx * m_nhalo * (m_nhalo + m_isize) * num_colors(m_ploc);
+      int idx = last_west_halo_idx() + (i + m_nhalo) + c * (m_nhalo + m_isize) +
+                (-j - 1) * (m_nhalo + m_isize) * num_colors(m_ploc) +
+                neigh_idx * m_nhalo * (m_nhalo + m_isize) * num_colors(m_ploc);
+      if (idx >= last_south_halo_idx())
+        std::cout << "WARNING IN SOUTH : " << i << "," << c << "," << j << ","
+                  << neigh_idx << ": " << last_south_halo_idx() << " -> " << idx
+                  << std::endl;
+
+      return idx;
     }
     if (i >= (int)m_isize && j < (int)m_jsize) {
-      return last_south_halo_idx() + (i - (m_isize - 1)) + c * m_nhalo +
-             (j + m_nhalo) * m_nhalo * num_colors(m_ploc) +
-             neigh_idx * (m_nhalo + m_jsize) * m_nhalo * num_colors(m_ploc);
+      int idx = last_south_halo_idx() + (i - (int)m_isize) + c * m_nhalo +
+                (j + (int)m_nhalo) * m_nhalo * num_colors(m_ploc) +
+                neigh_idx * (m_nhalo + m_jsize) * m_nhalo * num_colors(m_ploc);
+      if (idx >= last_east_halo_idx())
+        std::cout << "WARNING IN EAST : " << last_east_halo_idx() << " -> "
+                  << idx << std::endl;
+      return idx;
     }
     if (j >= (int)m_jsize) {
-      return last_east_halo_idx() + (i + m_nhalo) +
-             c * (m_isize + m_nhalo * 2) +
-             (j - (m_jsize - 1)) * num_colors(m_ploc) *
-                 (m_isize + m_nhalo * 2) +
-             neigh_idx * m_nhalo * num_colors(m_ploc) * (m_isize + m_nhalo * 2);
+      int idx =
+          last_east_halo_idx() + (i + m_nhalo) + c * (m_isize + m_nhalo * 2) +
+          (j - m_jsize) * num_colors(m_ploc) * (m_isize + m_nhalo * 2) +
+          neigh_idx * m_nhalo * num_colors(m_ploc) * (m_isize + m_nhalo * 2);
+      if (idx >= last_north_halo_idx())
+        std::cout << "WARNING IN NORTH : " << last_north_halo_idx() << " -> "
+                  << idx << std::endl;
+      return idx;
     }
     std::cout << "ERROR " << std::endl;
     return 0;
@@ -181,7 +194,7 @@ class elements {
                                         const unsigned int isize,
                                         const unsigned int jsize,
                                         const unsigned int nhalo) {
-    return num_nodes(isize, jsize, nhalo) * num_colors(primary_loc) *
+    return num_nodes(isize, jsize, nhalo + 1) * num_colors(primary_loc) *
            sizeof(size_t);
   }
 
@@ -219,7 +232,6 @@ public:
   size_t last_compute_domain_idx() {
     return (m_isize)*num_colors(m_loc) * (m_jsize);
   }
-
   size_t last_west_halo_idx() {
     return last_compute_domain_idx() + m_jsize * m_nhalo * num_colors(m_loc);
   }
@@ -231,51 +243,63 @@ public:
     return last_south_halo_idx() +
            (m_nhalo + m_jsize) * m_nhalo * num_colors(m_loc);
   }
+  size_t last_north_halo_idx() {
+    return last_east_halo_idx() +
+           m_nhalo * num_colors(m_loc) * (m_isize + m_nhalo * 2);
+  }
+
   size_t index(int i, unsigned int c, int j) {
-    assert(i > -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
+    assert(i >= -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
     assert(c < num_colors(m_loc));
-    assert(j > -(int)m_nhalo && j < (int)(m_jsize + m_nhalo));
+    assert(j >= -(int)m_nhalo && j < (int)(m_jsize + m_nhalo));
 
     if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize) {
-      return i + c * m_isize + j * num_colors(m_loc) * m_isize;
-      ;
+      int idx = i + c * m_isize + j * num_colors(m_loc) * m_isize;
+      if (idx >= last_compute_domain_idx()) {
+        std::cout << "WARNING IN COMPUTE DOMAIN : " << i << "," << c << "," << j
+                  << ": " << last_compute_domain_idx() << " -> " << idx
+                  << std::endl;
+      }
+      return idx;
     }
     if (i < 0 && j >= 0 && j < (int)m_jsize) {
-      return (int)last_compute_domain_idx() - i + c * m_nhalo +
-             j * m_nhalo * num_colors(m_loc);
+      int idx = (int)last_compute_domain_idx() - i - 1 + c * m_nhalo +
+                j * m_nhalo * num_colors(m_loc);
+      if (idx >= last_west_halo_idx())
+        std::cout << "WARNING IN WEST : " << i << "," << c << "," << j << ": "
+                  << last_west_halo_idx() << " -> " << idx << std::endl;
+
+      return idx;
     }
     if (j < 0 && i < (int)m_isize) {
-      return last_west_halo_idx() + i + c * (m_nhalo + m_isize) +
-             (-j) * (m_nhalo + m_isize) * num_colors(m_loc);
+      int idx = last_west_halo_idx() + (i + m_nhalo) + c * (m_nhalo + m_isize) +
+                (-j - 1) * (m_nhalo + m_isize) * num_colors(m_loc);
+      if (idx >= last_south_halo_idx())
+        std::cout << "WARNING IN SOUTH : " << i << "," << c << "," << j << ": "
+                  << last_south_halo_idx() << " -> " << idx << std::endl;
+      return idx;
     }
     if (i >= (int)m_isize && j < (int)m_jsize) {
-      return last_south_halo_idx() + (i - (m_isize - 1)) + c * m_nhalo +
-             (j + m_nhalo) * m_nhalo * num_colors(m_loc);
+      int idx = last_south_halo_idx() + (i - (int)m_isize) + c * m_nhalo +
+                (j + (int)m_nhalo) * m_nhalo * num_colors(m_loc);
+      if (idx >= last_east_halo_idx())
+        std::cout << "WARNING IN EAST : " << last_east_halo_idx() << " -> "
+                  << idx << std::endl;
+      return idx;
     }
     if (j >= (int)m_jsize) {
-      return last_east_halo_idx() + (i + m_nhalo) +
-             c * (m_isize + m_nhalo * 2) +
-             (j - (m_jsize - 1)) * num_colors(m_loc) * (m_isize + m_nhalo * 2);
-      ;
+      int idx = last_east_halo_idx() + (i + m_nhalo) +
+                c * (m_isize + m_nhalo * 2) +
+                (j - m_jsize) * num_colors(m_loc) * (m_isize + m_nhalo * 2);
+      if (idx >= last_north_halo_idx())
+        std::cout << "WARNING IN NORTH : " << last_north_halo_idx() << " -> "
+                  << idx << std::endl;
+
+      return idx;
     }
     std::cout << "ERROR " << std::endl;
     return 0;
   }
-
-  //  size_t index(int i, unsigned int c, int j) {
-  //    assert(i > -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
-  //    assert(c < num_colors(m_loc));
-  //    assert(j > -(int)m_nhalo && j < (int)(m_jsize + m_nhalo));
-
-  //    if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize) {
-  //      return i + c * m_isize + j * num_colors(m_loc) * m_isize;
-  //    }
-  //    if (i < 0 && j >= 0 && j < (int)m_jsize) {
-  //      return (int)last_compute_domain_idx() - i + c * m_nhalo +
-  //             j * m_nhalo * num_colors(m_loc);
-  //    }
-  //    return 0;
-  //  }
 
 private:
   location m_loc;
@@ -291,7 +315,7 @@ class nodes {
   static constexpr size_t
   size_of_mesh_fields(const location loc, const unsigned int isize,
                       const unsigned int jsize, const unsigned int nhalo) {
-    return num_nodes(isize, jsize, nhalo) * num_colors(loc) * sizeof(T);
+    return num_nodes(isize, jsize, nhalo + 1) * num_colors(loc) * sizeof(T);
   }
 
 public:
@@ -586,25 +610,19 @@ public:
       m_nodes.y(m_curr_idx + j) = j;
     }
     m_curr_idx += jsize;
-    m_i_domain[1]++;
+    //    m_i_domain[1]++;
 
     // add first line artificial nodes halo on the North
     for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
       m_cells.neighbor(location::vertex, i, 0, jsize - 1, 0) = m_curr_idx + i;
 
       m_cells.neighbor(location::vertex, i, 1, jsize - 1, 0) = m_curr_idx + i;
-      if (i > 0) {
-        m_cells.neighbor(location::vertex, i - 1, 1, jsize - 1, 1) =
-            m_curr_idx + i;
+      if (i >= 0) {
+        m_cells.neighbor(location::vertex, i, 1, jsize - 1, 1) =
+            m_curr_idx + i + 1;
       }
-
-      m_cells.neighbor(location::vertex, i, 0, jsize - 1, 0) = m_curr_idx + i;
-
-      m_cells.neighbor(location::vertex, i, 1, jsize - 1, 0) = m_curr_idx + i;
-      if (i > 0) {
-        m_cells.neighbor(location::vertex, i - 1, 1, jsize - 1, 1) =
-            m_curr_idx + i;
-      }
+      if (i == m_i_domain[i] - 1)
+        std::cout << m_curr_idx + i << std::endl;
 
       m_edges.neighbor(location::vertex, i, 1, jsize - 1, 1) = m_curr_idx + i;
       m_edges.neighbor(location::vertex, i, 2, jsize - 1, 0) = m_curr_idx + i;
@@ -613,85 +631,128 @@ public:
     }
 
     m_curr_idx += m_i_domain[1] - m_i_domain[0];
-    m_j_domain[1]++;
+    m_nodes.x(m_curr_idx) = m_i_domain[1] - m_i_domain[0] + m_jsize * 0.5;
+    m_nodes.y(m_curr_idx) = m_jsize;
+    m_curr_idx++;
 
-    // add first line real halo on the West
-    for (int j = m_j_domain[0]; j < m_j_domain[1]; ++j) {
-      m_cells.neighbor(location::vertex, -1, 1, j, 0) = m_curr_idx + j + 1;
-      m_cells.neighbor(location::vertex, -1, 1, j, 1) =
-          m_cells.neighbor(location::vertex, 0, 1, j, 0);
-      m_cells.neighbor(location::vertex, -1, 1, j, 2) =
-          m_cells.neighbor(location::vertex, 0, 0, j, 2);
+    //    m_j_domain[1]++;
 
-      m_cells.neighbor(location::vertex, -1, 0, j, 0) = m_curr_idx + j + 1;
-      m_cells.neighbor(location::vertex, -1, 0, j, 1) =
-          m_cells.neighbor(location::vertex, 0, 0, j, 2);
-      m_cells.neighbor(location::vertex, -1, 0, j, 2) = m_curr_idx + j;
+    // add lines real halo on the West
+    for (int c = 0; c < m_nhalo; ++c) {
 
-      m_nodes.x(m_curr_idx + (j - m_j_domain[0])) = j * 0.5 - 1;
-      m_nodes.y(m_curr_idx + (j - m_j_domain[0])) = j;
+      for (int j = m_j_domain[0]; j < m_j_domain[1]; ++j) {
+        m_cells.neighbor(location::vertex, -1 - c, 1, j, 0) =
+            m_curr_idx + j + 1;
+        m_cells.neighbor(location::vertex, -1 - c, 1, j, 1) =
+            m_cells.neighbor(location::vertex, -c, 1, j, 0);
+        m_cells.neighbor(location::vertex, -1 - c, 1, j, 2) =
+            m_cells.neighbor(location::vertex, -c, 0, j, 2);
+
+        m_cells.neighbor(location::vertex, -1 - c, 0, j, 0) =
+            m_curr_idx + j + 1;
+        m_cells.neighbor(location::vertex, -1 - c, 0, j, 1) =
+            m_cells.neighbor(location::vertex, -c, 0, j, 2);
+        m_cells.neighbor(location::vertex, -1 - c, 0, j, 2) = m_curr_idx + j;
+
+        m_nodes.x(m_curr_idx + (j - m_j_domain[0])) = j * 0.5 - 1 - c;
+        m_nodes.y(m_curr_idx + (j - m_j_domain[0])) = j;
+      }
+      m_curr_idx += m_j_domain[1] - m_j_domain[0];
+
+      m_nodes.x(m_curr_idx) = m_j_domain[1] * 0.5 - 1 - c;
+      m_nodes.y(m_curr_idx) = m_j_domain[1];
+      m_curr_idx++;
+
+      m_i_domain[0]--;
     }
-    m_curr_idx += m_j_domain[1] - m_j_domain[0];
-    m_i_domain[0]--;
 
     // add first line real halo on the South
-    for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
-      m_cells.neighbor(location::vertex, i, 1, -1, 0) =
-          m_cells.neighbor(location::vertex, i, 0, 0, 2);
-      m_cells.neighbor(location::vertex, i, 1, -1, 1) =
-          m_cells.neighbor(location::vertex, i, 0, 0, 1);
-      m_cells.neighbor(location::vertex, i, 1, -1, 2) = m_curr_idx + i + 1 + 1;
+    for (int c = 0; c < m_nhalo; ++c) {
 
-      m_cells.neighbor(location::vertex, i, 0, -1, 0) =
-          m_cells.neighbor(location::vertex, i, 0, 0, 2);
-      m_cells.neighbor(location::vertex, i, 0, -1, 1) = m_curr_idx + i + 1 + 1;
-      m_cells.neighbor(location::vertex, i, 0, -1, 2) = m_curr_idx + i + 1;
+      for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
+        m_cells.neighbor(location::vertex, i, 1, -1 - c, 0) =
+            m_cells.neighbor(location::vertex, i, 0, -c, 2);
+        m_cells.neighbor(location::vertex, i, 1, -1 - c, 1) =
+            m_cells.neighbor(location::vertex, i, 0, -c, 1);
+        m_cells.neighbor(location::vertex, i, 1, -1 - c, 2) =
+            m_curr_idx + (i - m_i_domain[0]) + 1;
+        if (i == -1 && c == 1)
+          std::cout << "IND " << c << " " << m_cells.index(i, 0, -1 - c) << " "
+                    << m_cells.neighbor(location::vertex, i, 0, -c, 2) << " "
+                    << m_cells.neighbor(location::vertex, i, 0, -c, 1) << " "
+                    << m_curr_idx + (i - m_i_domain[0]) + 1 << std::endl;
+        m_cells.neighbor(location::vertex, i, 0, -1 - c, 0) =
+            m_cells.neighbor(location::vertex, i, 0, -c, 2);
+        m_cells.neighbor(location::vertex, i, 0, -1 - c, 1) =
+            m_curr_idx + (i - m_i_domain[0]) + 1;
+        m_cells.neighbor(location::vertex, i, 0, -1 - c, 2) =
+            m_curr_idx + (i - m_i_domain[0]);
 
-      m_nodes.x(m_curr_idx + (i - m_i_domain[0])) = i - 0.5;
-      m_nodes.y(m_curr_idx + (i - m_i_domain[0])) = -1;
+        m_nodes.x(m_curr_idx + (i - m_i_domain[0])) = i - 0.5 * (1 + c);
+        m_nodes.y(m_curr_idx + (i - m_i_domain[0])) = -1 - c;
+      }
+      m_curr_idx += m_i_domain[1] - m_i_domain[0];
+
+      m_nodes.x(m_curr_idx) = m_i_domain[1] - 0.5 * (1 + c);
+      m_nodes.y(m_curr_idx) = -1 - c;
+
+      m_curr_idx++;
+
+      m_j_domain[0]--;
     }
-    m_curr_idx += m_i_domain[1] - m_i_domain[0];
-    m_j_domain[0]--;
-
     // add first line real halo on the East
-    for (int j = m_j_domain[0]; j < m_j_domain[1]; ++j) {
-      int i = m_isize;
-      m_cells.neighbor(location::vertex, i, 1, j, 0) =
-          m_cells.neighbor(location::vertex, i - 1, 1, j, 1);
-      m_cells.neighbor(location::vertex, i, 1, j, 1) = m_curr_idx + j + 1 + 1;
-      m_cells.neighbor(location::vertex, i, 1, j, 2) = m_curr_idx + j + 1;
+    for (int c = 0; c < m_nhalo; ++c) {
 
-      m_cells.neighbor(location::vertex, i, 0, j, 0) =
-          m_cells.neighbor(location::vertex, i - 1, 1, j, 1);
-      m_cells.neighbor(location::vertex, i, 0, j, 1) = m_curr_idx + j + 1;
-      m_cells.neighbor(location::vertex, i, 0, j, 2) =
-          m_cells.neighbor(location::vertex, i - 1, 0, j, 1);
+      for (int j = m_j_domain[0]; j < m_j_domain[1]; ++j) {
+        int i = m_isize + c;
+        m_cells.neighbor(location::vertex, i, 1, j, 0) =
+            m_cells.neighbor(location::vertex, i - 1, 1, j, 1);
+        m_cells.neighbor(location::vertex, i, 1, j, 1) =
+            m_curr_idx + (j - m_j_domain[0]) + 1;
+        m_cells.neighbor(location::vertex, i, 1, j, 2) =
+            m_curr_idx + (j - m_j_domain[0]);
 
-      m_nodes.x(m_curr_idx + (j - m_j_domain[0])) = m_isize + 1 + j * 0.5;
-      m_nodes.y(m_curr_idx + (j - m_j_domain[0])) = j;
+        m_cells.neighbor(location::vertex, i, 0, j, 0) =
+            m_cells.neighbor(location::vertex, i - 1, 1, j, 1);
+        m_cells.neighbor(location::vertex, i, 0, j, 1) =
+            m_curr_idx + (j - m_j_domain[0]);
+        m_cells.neighbor(location::vertex, i, 0, j, 2) =
+            m_cells.neighbor(location::vertex, i - 1, 0, j, 1);
+
+        m_nodes.x(m_curr_idx + (j - m_j_domain[0])) =
+            i + (j - m_j_domain[0]) * 0.5;
+        m_nodes.y(m_curr_idx + (j - m_j_domain[0])) = (j);
+      }
+      m_curr_idx += m_j_domain[1] - m_j_domain[0];
+
+      m_nodes.x(m_curr_idx) = m_i_domain[1] + m_j_domain[1] * 0.5 + 1;
+      m_nodes.y(m_curr_idx) = m_j_domain[1];
+
+      m_curr_idx++;
+
+      m_i_domain[1]++;
     }
-    m_curr_idx += m_j_domain[1] - m_j_domain[0];
-    m_i_domain[1]++;
+    //    // add first line real halo on the North
+    //    for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
+    //      int j = m_jsize;
+    //      m_cells.neighbor(location::vertex, i, 1, j, 0) = m_curr_idx + i + 1;
+    //      m_cells.neighbor(location::vertex, i, 1, j, 1) = m_curr_idx + i + 1
+    //      + 1;
+    //      m_cells.neighbor(location::vertex, i, 1, j, 2) =
+    //          m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
 
-    // add first line real halo on the North
-    for (int i = m_i_domain[0]; i < m_i_domain[1]; ++i) {
-      int j = m_jsize;
-      m_cells.neighbor(location::vertex, i, 1, j, 0) = m_curr_idx + i + 1;
-      m_cells.neighbor(location::vertex, i, 1, j, 1) = m_curr_idx + i + 1 + 1;
-      m_cells.neighbor(location::vertex, i, 1, j, 2) =
-          m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
+    //      m_cells.neighbor(location::vertex, i, 0, j, 0) = m_curr_idx + i + 1;
+    //      m_cells.neighbor(location::vertex, i, 0, j, 1) =
+    //          m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
+    //      m_cells.neighbor(location::vertex, i, 0, j, 2) =
+    //          m_cells.neighbor(location::vertex, i, 1, j - 1, 0);
 
-      m_cells.neighbor(location::vertex, i, 0, j, 0) = m_curr_idx + i + 1;
-      m_cells.neighbor(location::vertex, i, 0, j, 1) =
-          m_cells.neighbor(location::vertex, i, 1, j - 1, 1);
-      m_cells.neighbor(location::vertex, i, 0, j, 2) =
-          m_cells.neighbor(location::vertex, i, 1, j - 1, 0);
-
-      m_nodes.x(m_curr_idx + (i - m_i_domain[0])) = i + 0.5 + m_jsize * 0.5;
-      m_nodes.y(m_curr_idx + (i - m_i_domain[0])) = m_jsize + 1;
-    }
-    m_curr_idx += m_i_domain[1] - m_i_domain[0];
-    m_j_domain[1]++;
+    //      m_nodes.x(m_curr_idx + (i - m_i_domain[0])) = i + 1.5 + m_jsize *
+    //      0.5;
+    //      m_nodes.y(m_curr_idx + (i - m_i_domain[0])) = m_jsize + 1;
+    //    }
+    //    m_curr_idx += m_i_domain[1] - m_i_domain[0];
+    //    m_j_domain[1]++;
   }
 
   size_t element_index(location primary_loc, int i, unsigned int c, int j) {
@@ -730,12 +791,16 @@ public:
 
     ss << "$EndNodes" << std::endl;
     ss << "$Elements" << std::endl;
-    ss << num_nodes(m_isize + 2, m_jsize + 2, 0) * 2 // edges
+    //    ss << num_nodes(m_isize + 3, m_jsize + 3, 0) * 2 // edges
+    ss << num_nodes(m_isize + 4, m_jsize + 2, 0) * 2 // edges
        // + num_nodes(m_isize, m_jsize, 0) * 3
        << std::endl;
 
-    for (int j = -1; j < (int)m_jsize + 1; ++j) {
-      for (int i = -1; i < (int)m_isize + 1; ++i) {
+    //    for (int j = -2; j < (int)m_jsize + 1; ++j) {
+    //      for (int i = -2; i < (int)m_isize + 1; ++i) {
+
+    for (int j = -2; j < (int)m_jsize; ++j) {
+      for (int i = -2; i < (int)m_isize + 2; ++i) {
 
         ss << m_cells.index(i, 0, j) + 1 << " 2 4 1 1 1 28 "
            << m_cells.neighbor(location::vertex, i, 0, j, 0) + 1 << " "
