@@ -41,144 +41,7 @@
 #include <array>
 #include <cuda_runtime.h>
 #include "udefs.hpp"
-
-#define GHOST_ID_X 10000
-#define GHOST_ID_Y 20000
-
-class neighbours_table {
-public:
-  static constexpr size_t size_of_array(const location primary_loc,
-                                        const location neigh_loc,
-                                        const unsigned int isize,
-                                        const unsigned int jsize,
-                                        const unsigned int nhalo) {
-    return num_nodes(isize, jsize, nhalo + 1) * num_colors(primary_loc) *
-           sizeof(size_t) * num_neighbours(primary_loc, neigh_loc);
-  }
-
-  neighbours_table(location primary_loc, location neigh_loc, size_t isize,
-                   size_t jsize, size_t nhalo)
-      : m_ploc(primary_loc), m_nloc(neigh_loc), m_isize(isize), m_jsize(jsize),
-        m_nhalo(nhalo) {
-#ifdef ENABLE_GPU
-    cudaMallocManaged(
-        &m_data, size_of_array(primary_loc, neigh_loc, isize, jsize, nhalo));
-#else
-    m_data = (size_t *)malloc(
-        size_of_array(primary_loc, neigh_loc, isize, jsize, nhalo));
-#endif
-  }
-
-  size_t &operator()(int i, unsigned int c, int j, unsigned int neigh_idx) {
-
-    assert(index_in_tables(i, c, j, neigh_idx) <
-           size_of_array(m_ploc, m_nloc, m_isize, m_jsize, m_nhalo));
-
-    return m_data[index_in_tables(i, c, j, neigh_idx)];
-  }
-
-  size_t &operator()(size_t idx, unsigned int neigh_idx) {
-
-    return m_data[neigh_index(idx, neigh_idx)];
-  }
-
-  size_t last_compute_domain_idx() {
-    return num_neighbours(m_ploc, m_nloc) * (m_isize)*num_colors(m_ploc) *
-           (m_jsize);
-  }
-  size_t last_west_halo_idx() {
-    return last_compute_domain_idx() +
-           num_neighbours(m_ploc, m_nloc) * m_jsize * m_nhalo *
-               num_colors(m_ploc);
-  }
-  size_t last_south_halo_idx() {
-    return last_west_halo_idx() +
-           num_neighbours(m_ploc, m_nloc) * m_nhalo * (m_nhalo + m_isize) *
-               num_colors(m_ploc);
-  }
-  size_t last_east_halo_idx() {
-    return last_south_halo_idx() +
-           num_neighbours(m_ploc, m_nloc) * (m_nhalo + m_jsize) * m_nhalo *
-               num_colors(m_ploc);
-  }
-  size_t last_north_halo_idx() {
-    return last_east_halo_idx() +
-           num_neighbours(m_ploc, m_nloc) * m_nhalo * num_colors(m_ploc) *
-               (m_isize + m_nhalo * 2);
-  }
-
-  size_t neigh_index(size_t idx, unsigned int neigh_idx) {
-    assert(idx < last_compute_domain_idx());
-
-    return idx + neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
-  }
-  size_t index_in_tables(int i, unsigned int c, int j, unsigned int neigh_idx) {
-    assert(i >= -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
-    assert(c < num_colors(m_ploc));
-    assert(j >= -(int)m_nhalo && j < (int)(m_jsize + m_nhalo));
-    assert(neigh_idx < num_neighbours(m_ploc, m_nloc));
-
-    if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize) {
-      int idx = i + c * m_isize + j * num_colors(m_ploc) * m_isize +
-                neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
-      if (idx >= last_compute_domain_idx()) {
-        std::cout << "WARNING IN COMPUTE DOMAIN : " << i << "," << c << "," << j
-                  << "," << neigh_idx << ": " << last_compute_domain_idx()
-                  << " -> " << idx << std::endl;
-      }
-      return idx;
-    }
-    if (i < 0 && j >= 0 && j < (int)m_jsize) {
-      int idx = (int)last_compute_domain_idx() - i - 1 + c * m_nhalo +
-                j * m_nhalo * num_colors(m_ploc) +
-                neigh_idx * m_jsize * m_nhalo * num_colors(m_ploc);
-      if (idx >= last_west_halo_idx())
-        std::cout << "WARNING IN WEST : " << i << "," << c << "," << j << ","
-                  << neigh_idx << ": " << last_west_halo_idx() << " -> " << idx
-                  << std::endl;
-
-      return idx;
-    }
-    if (j < 0 && i < (int)m_isize) {
-      int idx = last_west_halo_idx() + (i + m_nhalo) + c * (m_nhalo + m_isize) +
-                (-j - 1) * (m_nhalo + m_isize) * num_colors(m_ploc) +
-                neigh_idx * m_nhalo * (m_nhalo + m_isize) * num_colors(m_ploc);
-      if (idx >= last_south_halo_idx())
-        std::cout << "WARNING IN SOUTH : " << i << "," << c << "," << j << ","
-                  << neigh_idx << ": " << last_south_halo_idx() << " -> " << idx
-                  << std::endl;
-
-      return idx;
-    }
-    if (i >= (int)m_isize && j < (int)m_jsize) {
-      int idx = last_south_halo_idx() + (i - (int)m_isize) + c * m_nhalo +
-                (j + (int)m_nhalo) * m_nhalo * num_colors(m_ploc) +
-                neigh_idx * (m_nhalo + m_jsize) * m_nhalo * num_colors(m_ploc);
-      if (idx >= last_east_halo_idx())
-        std::cout << "WARNING IN EAST : " << last_east_halo_idx() << " -> "
-                  << idx << std::endl;
-      return idx;
-    }
-    if (j >= (int)m_jsize) {
-      int idx =
-          last_east_halo_idx() + (i + m_nhalo) + c * (m_isize + m_nhalo * 2) +
-          (j - m_jsize) * num_colors(m_ploc) * (m_isize + m_nhalo * 2) +
-          neigh_idx * m_nhalo * num_colors(m_ploc) * (m_isize + m_nhalo * 2);
-      if (idx >= last_north_halo_idx())
-        std::cout << "WARNING IN NORTH : " << last_north_halo_idx() << " -> "
-                  << idx << std::endl;
-      return idx;
-    }
-    std::cout << "ERROR " << std::endl;
-    return 0;
-  }
-
-private:
-  location m_ploc;
-  location m_nloc;
-  size_t m_isize, m_jsize, m_nhalo;
-  size_t *m_data;
-};
+#include "neighbours_table.hpp"
 
 class elements {
   static constexpr size_t size_of_array(const location primary_loc,
@@ -213,7 +76,7 @@ public:
     return m_elements_to_vertices(i, c, j, neigh_idx);
   }
 
-  neighbours_table &table(location neigh_loc) {
+  sneighbours_table &table(location neigh_loc) {
     if (neigh_loc == location::cell)
       return m_elements_to_cells;
     else if (neigh_loc == location::edge)
@@ -297,7 +160,7 @@ private:
   location m_loc;
   size_t *m_idx;
   size_t m_isize, m_jsize, m_nhalo;
-  neighbours_table m_elements_to_cells, m_elements_to_edges,
+  sneighbours_table m_elements_to_cells, m_elements_to_edges,
       m_elements_to_vertices;
 };
 
@@ -333,23 +196,6 @@ public:
   }
   size_t last_compute_domain_idx() { return m_isize * m_jsize; }
 
-  //  virtual size_t idx(int i, unsigned int c, int j) {
-  //    if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize)
-  //      return i + c * m_isize + j * m_isize * num_colors(location::vertex);
-  //    if (i == (int)m_isize && j >= 0 && j < (int)m_jsize)
-  //      return last_compute_domain_idx() + j;
-  //    if (j == (int)m_jsize && i >= 0)
-  //      return last_compute_domain_idx() + m_jsize + i;
-  //    if (i < 0 && j >= 0 && j < (int)m_jsize)
-  //      return last_compute_domain_idx() + m_jsize + m_isize + 1 - i +
-  //             c * m_nhalo + j * m_nhalo * num_colors(location::vertex);
-  //    if (j < 0 && i < (int)m_isize)
-  //      return last_compute_domain_idx() + m_jsize + m_isize + 1 +
-  //             m_nhalo * num_colors(location::vertex) * m_jsize +
-  //             (j + (int)m_nhalo) + c * m_nhalo;
-  //    // TODO
-  //    return -1;
-  //  }
   size_t &neighbor(location neigh_loc, int i, unsigned int c, int j,
                    unsigned int neigh_idx) {
     if (neigh_loc == location::cell)
@@ -366,9 +212,9 @@ private:
   size_t m_isize, m_jsize, m_nhalo;
   double *m_x;
   double *m_y;
-  neighbours_table m_vertex_to_cells;
-  neighbours_table m_vertex_to_edges;
-  neighbours_table m_vertex_to_vertices;
+  sneighbours_table m_vertex_to_cells;
+  sneighbours_table m_vertex_to_edges;
+  sneighbours_table m_vertex_to_vertices;
 };
 
 //////////////// conventions ///////////////////
