@@ -425,7 +425,7 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
-    copy<<<num_blocks, block_dim>>>(a_cell, b_cell, init_offset, cstride_cell,
+    on_cells<<<num_blocks, block_dim>>>(a_cell, b_cell, init_offset, cstride_cell,
                                     jstride_cell, kstride_cell, ksize, isize,
                                     jsize);
     // gpuErrchk(cudaPeekAtLastError());
@@ -433,7 +433,7 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
     t2 = std::chrono::high_resolution_clock::now();
     if (t > warmup_step)
-      timings[ucopy_st] += std::chrono::duration<double>(t2 - t1).count();
+      timings[uoncells_st] += std::chrono::duration<double>(t2 - t1).count();
     if (!t) {
       for (unsigned int i = 0; i < isize; ++i) {
         for (unsigned int c = 0; c < num_colors(location::cell); ++c) {
