@@ -81,8 +81,16 @@ int main(int argc, char **argv) {
 
   printf("--------------------------\n");
   printf("copy : %f GB/s, time : %f \n",
-         tot_size * 2 * sizeof(float) /
+         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
              (timings[copy_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
+         timings[ucopy_st]);
+
+  printf("--------------------------\n");
+  printf("copy mesh : %f GB/s, time : %f \n",
+         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+             (timings[ucopymesh_st] / (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
          timings[copy_st]);
+
 }

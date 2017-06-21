@@ -419,304 +419,41 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
       }
     }
 
-    //    //----------------------------------------//
-    //    //---------------- COPYi1 ----------------//
-    //    //----------------------------------------//
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(copyi1)<<<num_blocks, block_dim>>>(a, b, init_offset,
-    //    jstride,
-    //                                              kstride, ksize, isize,
-    //                                              jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
+    //----------------------------------------//
+    //-------------  ONCELLS MESH ------------//
+    //----------------------------------------//
 
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[copyi1_st] += std::chrono::duration<double>(t2 -
-    //      t1).count();
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i + 1 + j * jstride + k * kstride + init_offset]) {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
+    gpuErrchk(cudaDeviceSynchronize());
+    t1 = std::chrono::high_resolution_clock::now();
+    copy<<<num_blocks, block_dim>>>(a_cell, b_cell, init_offset, cstride_cell,
+                                    jstride_cell, kstride_cell, ksize, isize,
+                                    jsize);
+    // gpuErrchk(cudaPeekAtLastError());
+    gpuErrchk(cudaDeviceSynchronize());
 
-    //    //----------------------------------------//
-    //    //----------------  SUMi1 ----------------//
-    //    //----------------------------------------//
+    t2 = std::chrono::high_resolution_clock::now();
+    if (t > warmup_step)
+      timings[ucopy_st] += std::chrono::duration<double>(t2 - t1).count();
+    if (!t) {
+      for (unsigned int i = 0; i < isize; ++i) {
+        for (unsigned int c = 0; c < num_colors(location::cell); ++c) {
+          for (unsigned int j = 0; j < jsize; ++j) {
+            for (unsigned int k = 0; k < ksize; ++k) {
+              if (b_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
+                                 kstride_cell, init_offset)] !=
+                  a_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
+                                 kstride_cell, init_offset)]) {
+                printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+                       b_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
+                                      kstride_cell, init_offset)],
+                       a_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
+                                      kstride_cell, init_offset)]);
+              }
+            }
+          }
+        }
+      }
+    }
 
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(sumi1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-    //                                             kstride, ksize, isize,
-    //                                             jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
-
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[sumi1_st] +=
-    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-    //          t1)
-    //              .count();
-
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i + j * jstride + k * kstride + init_offset] +
-    //                    a[i + 1 + j * jstride + k * kstride + init_offset])
-    //                    {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
-
-    //    //----------------------------------------//
-    //    //----------------  SUMj1 ----------------//
-    //    //----------------------------------------//
-
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(sumj1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-    //                                             kstride, ksize, isize,
-    //                                             jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
-
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[sumj1_st] +=
-    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-    //          t1)
-    //              .count();
-
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i + j * jstride + k * kstride + init_offset] +
-    //                    a[i + (j + 1) * jstride + k * kstride +
-    //                    init_offset])
-    //                    {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
-
-    //    //----------------------------------------//
-    //    //----------------  SUMk1 ----------------//
-    //    //----------------------------------------//
-
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(sumk1)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-    //                                             kstride, ksize, isize,
-    //                                             jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
-
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[sumk1_st] +=
-    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-    //          t1)
-    //              .count();
-
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i + j * jstride + k * kstride + init_offset] +
-    //                    a[i + j * jstride + (k + 1) * kstride +
-    //                    init_offset])
-    //                    {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
-
-    //    //----------------------------------------//
-    //    //----------------  AVGi  ----------------//
-    //    //----------------------------------------//
-
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(avgi)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-    //    kstride,
-    //                                            ksize, isize, jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
-
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[avgi_st] +=
-    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-    //          t1)
-    //              .count();
-
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i - 1 + j * jstride + k * kstride + init_offset] +
-    //                    a[i + 1 + j * jstride + k * kstride + init_offset])
-    //                    {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
-
-    //    //----------------------------------------//
-    //    //----------------  AVGj  ----------------//
-    //    //----------------------------------------//
-
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(avgj)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-    //    kstride,
-    //                                            ksize, isize, jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
-
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[avgj_st] +=
-    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-    //          t1)
-    //              .count();
-
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i + (j - 1) * jstride + k * kstride + init_offset] +
-    //                    a[i + (j + 1) * jstride + k * kstride +
-    //                    init_offset])
-    //                    {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
-
-    //    //----------------------------------------//
-    //    //----------------  AVGk  ----------------//
-    //    //----------------------------------------//
-
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(avgk)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-    //    kstride,
-    //                                            ksize, isize, jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
-
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[avgk_st] +=
-    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-    //          t1)
-    //              .count();
-
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i + j * jstride + (k - 1) * kstride + init_offset] +
-    //                    a[i + j * jstride + (k + 1) * kstride +
-    //                    init_offset])
-    //                    {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
-
-    //    //----------------------------------------//
-    //    //----------------  LAP   ----------------//
-    //    //----------------------------------------//
-
-    //    gpuErrchk(cudaDeviceSynchronize());
-    //    t1 = std::chrono::high_resolution_clock::now();
-    //    FNNAME(lap)<<<num_blocks, block_dim>>>(a, b, init_offset, jstride,
-    //    kstride,
-    //                                           ksize, isize, jsize);
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
-
-    //    t2 = std::chrono::high_resolution_clock::now();
-    //    if (t > warmup_step)
-    //      timings[lap_st] +=
-    //          std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-    //          t1)
-    //              .count();
-
-    //    if (!t) {
-    //      for (unsigned int i = 0; i < isize; ++i) {
-    //        for (unsigned int j = 0; j < jsize; ++j) {
-    //          for (unsigned int k = 0; k < ksize; ++k) {
-    //            if (b[i + j * jstride + k * kstride + init_offset] !=
-    //                a[i + j * jstride + k * kstride + init_offset] +
-    //                    a[i + 1 + j * jstride + k * kstride + init_offset] +
-    //                    a[i - 1 + j * jstride + k * kstride + init_offset] +
-    //                    a[i + (j + 1) * jstride + k * kstride + init_offset]
-    //                    +
-    //                    a[i + (j - 1) * jstride + k * kstride +
-    //                    init_offset])
-    //                    {
-    //              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j,
-    //              (int)k,
-    //                     b[i + j * jstride + k * kstride + init_offset],
-    //                     a[i + j * jstride + k * kstride + init_offset]);
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
   }
 }

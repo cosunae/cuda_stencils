@@ -39,6 +39,7 @@
 #include <iostream>
 #include <fstream>
 #include <array>
+#include <cuda_runtime.h>
 #include "udefs.hpp"
 
 #define GHOST_ID_X 10000

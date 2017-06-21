@@ -1,6 +1,6 @@
 #pragma once
 
-enum ustencils { ucopy_st = 0, ucopymesh_st, unum_bench_st };
+enum ustencils { ucopy_st = 0, ucopymesh_st, uoncells_st, unum_bench_st };
 
 enum class location { cell = 0, edge, vertex };
 
