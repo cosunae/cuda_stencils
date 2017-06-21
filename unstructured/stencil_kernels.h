@@ -75,9 +75,9 @@ __global__ void on_cells(T const *__restrict__ a, T *__restrict__ b,
 
 template <typename T>
 __global__ void
-one_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
-               const unsigned int init_offset, const unsigned int kstride,
-               const unsigned int ksize, const unsigned int mesh_size) {
+on_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
+              const unsigned int init_offset, const unsigned int kstride,
+              const unsigned int ksize, const unsigned int mesh_size) {
   unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (idx < mesh_size) {
@@ -425,9 +425,9 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
-    on_cells<<<num_blocks, block_dim>>>(a_cell, b_cell, init_offset, cstride_cell,
-                                    jstride_cell, kstride_cell, ksize, isize,
-                                    jsize);
+    on_cells<<<num_blocks, block_dim>>>(a_cell, b_cell, init_offset,
+                                        cstride_cell, jstride_cell,
+                                        kstride_cell, ksize, isize, jsize);
     // gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
@@ -454,6 +454,5 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
         }
       }
     }
-
   }
 }
