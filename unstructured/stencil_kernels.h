@@ -67,7 +67,7 @@ __global__ void on_cells(T const *__restrict__ a, T *__restrict__ b,
       // color 0
       b[idx] = a[idx + cstride - 1] + a[idx + cstride] + a[idx - cstride];
       // color 1
-      b[idx + cstride] = a[idx] + a[idx + 1] + a[idx] + a[idx + cstride * 2];
+      b[idx + cstride] = a[idx] + a[idx + 1] + a[idx + cstride * 2];
     }
     idx += kstride;
   }
@@ -77,12 +77,13 @@ template <typename T>
 __global__ void
 on_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
               const unsigned int init_offset, const unsigned int kstride,
-              const unsigned int ksize, const unsigned int mesh_size) {
-  unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+              const unsigned int ksize, const unsigned int mesh_size, neighbours_table table) {
+  const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned int idx = idx2;
 
   if (idx < mesh_size) {
     for (int k = 0; k < ksize; ++k) {
-      b[idx] = a[idx];
+      b[idx] = a[idx + table(idx2, 0)] + a[idx + table(idx2, 1)] + a[idx + table(idx2, 2)];
       idx += kstride;
     }
   }
@@ -381,16 +382,15 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
 
-    const unsigned int block_size_x = BLOCKSIZEX;
     const unsigned int mesh_size =
         mesh_.get_elements(location::cell).last_compute_domain_idx();
 
-    const unsigned int nbx = (mesh_size + block_size_x - 1) / block_size_x;
+    const unsigned int nbx1d = (mesh_size + block_size_x - 1) / block_size_x;
 
-    dim3 num_blocks(nbx, 1, 1);
-    dim3 block_dim(block_size_x, 1);
+    dim3 num_blocks1d(nbx1d, 1, 1);
+    dim3 block_dim1d(block_size_x, 1);
 
-    copy_mesh<<<num_blocks, block_dim>>>(a_cell, b_cell, init_offset,
+    copy_mesh<<<num_blocks1d, block_dim1d>>>(a_cell, b_cell, init_offset,
                                          kstride_cell, ksize, mesh_size);
     // gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
@@ -420,7 +420,7 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     }
 
     //----------------------------------------//
-    //-------------  ONCELLS MESH ------------//
+    //---------------  ONCELLS  --------------//
     //----------------------------------------//
 
     gpuErrchk(cudaDeviceSynchronize());
@@ -445,24 +445,63 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
                      a_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)] +
                      a_cell[uindex3(i, 1, j - 1, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)]) ||
-                (b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)]))
+printf("Error c0 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+                     b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)],
+                     a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)]);
+
+
+                if((b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
                                 kstride_cell, init_offset)] !=
                  a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
                                 kstride_cell, init_offset)] +
                      a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)] +
-                     a_cell[uindex3(i, 0, j - 1, k, cstride_cell, jstride_cell,
+                     a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)])) {
-              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+              printf("Error c1 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+                     b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)],
-                     a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)]);
+a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] +
+                     a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)] +
+                     a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)]
+                                    );
             }
           }
         }
       }
     }
+
+    //----------------------------------------//
+    //-------------  ONCELLS MESH ------------//
+    //----------------------------------------//
+
+    gpuErrchk(cudaDeviceSynchronize());
+    t1 = std::chrono::high_resolution_clock::now();
+    on_cells_mesh<<<num_blocks1d, block_dim1d>>>(a_cell, b_cell, init_offset,
+                                         kstride_cell, ksize, mesh_size, mesh_.get_elements(location::cell).table(location::cell));
+    // gpuErrchk(cudaPeekAtLastError());
+    gpuErrchk(cudaDeviceSynchronize());
+
+    t2 = std::chrono::high_resolution_clock::now();
+    if (t > warmup_step)
+      timings[uoncellsmesh_st] += std::chrono::duration<double>(t2 - t1).count();
+    if (!t) {
+      for (unsigned int i = 0; i < isize; ++i) {
+        for (unsigned int j = 0; j < jsize; ++j) {
+          for (unsigned int k = 0; k < ksize; ++k) {
+            }
+          }
+        }
+      }
+
+
+
+
   }
 }

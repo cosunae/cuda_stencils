@@ -69,6 +69,7 @@ public:
 #endif
   }
 
+  __host__ __device__
   size_t &operator()(int i, unsigned int c, int j, unsigned int neigh_idx) {
 
     assert(index_in_tables(i, c, j, neigh_idx) <
@@ -77,11 +78,13 @@ public:
     return m_data[index_in_tables(i, c, j, neigh_idx)];
   }
 
+  __host__ __device__
   size_t &operator()(size_t idx, unsigned int neigh_idx) {
 
     return m_data[neigh_index(idx, neigh_idx)];
   }
 
+  __host__ __device__
   size_t last_compute_domain_idx() {
     return num_neighbours(m_ploc, m_nloc) * (m_isize)*num_colors(m_ploc) *
            (m_jsize);
@@ -107,6 +110,7 @@ public:
                (m_isize + m_nhalo * 2);
   }
 
+  __host__ __device__
   size_t neigh_index(size_t idx, unsigned int neigh_idx) {
     assert(idx < last_compute_domain_idx());
 
