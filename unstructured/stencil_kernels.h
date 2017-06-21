@@ -436,19 +436,29 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
       timings[uoncells_st] += std::chrono::duration<double>(t2 - t1).count();
     if (!t) {
       for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int c = 0; c < num_colors(location::cell); ++c) {
-          for (unsigned int j = 0; j < jsize; ++j) {
-            for (unsigned int k = 0; k < ksize; ++k) {
-              if (b_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
-                                 kstride_cell, init_offset)] !=
-                  a_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
-                                 kstride_cell, init_offset)]) {
-                printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                       b_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
-                                      kstride_cell, init_offset)],
-                       a_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
-                                      kstride_cell, init_offset)]);
-              }
+        for (unsigned int j = 0; j < jsize; ++j) {
+          for (unsigned int k = 0; k < ksize; ++k) {
+            if ((b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] !=
+                 a_cell[uindex3(i - 1, 1, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] +
+                     a_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)] +
+                     a_cell[uindex3(i, 1, j - 1, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)]) ||
+                (b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] !=
+                 a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] +
+                     a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)] +
+                     a_cell[uindex3(i, 0, j - 1, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)])) {
+              printf("Error in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+                     b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)],
+                     a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)]);
             }
           }
         }
