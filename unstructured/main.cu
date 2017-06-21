@@ -7,21 +7,7 @@
 #include "libjson.h"
 #include "mesh.hpp"
 
-#define FNNAME(a) a
-#define LOAD(a) __ldg(&a)
-
 #include "stencil_kernels.h"
-
-#undef FNNAME
-#undef LOAD
-
-#define FNNAME(a) a##_ldg
-#define LOAD(a) a
-
-#include "stencil_kernels.h"
-
-#undef FNNAME
-#undef LOAD
 
 int parse_uint(const char *str, unsigned int *output) {
   char *next;
@@ -67,6 +53,7 @@ int main(int argc, char **argv) {
 
   mesh mesh_(isize, jsize, 2);
   mesh_.print();
+  mesh_.test();
 
   printf("======================== FLOAT =======================\n");
   std::vector<double> timings(num_bench_st);
@@ -84,7 +71,7 @@ int main(int argc, char **argv) {
   dsize.push_back(JSONNode("y", jsize));
   dsize.push_back(JSONNode("z", ksize));
 
-  //  launch<float>(timings, isize, jsize, ksize, tsteps, warmup_step);
+  launch<float>(timings, mesh_, isize, jsize, ksize, tsteps, warmup_step);
 
   JSONNode precf;
   precf.set_name("float");
@@ -92,7 +79,7 @@ int main(int argc, char **argv) {
   JSONNode fnotex;
   fnotex.set_name("no_tex");
 
-  printf("-------------    NO TEXTURE   -------------\n");
+  printf("--------------------------\n");
   printf("copy : %f GB/s, time : %f \n",
          tot_size * 2 * sizeof(float) /
              (timings[copy_st] / (double)(tsteps - (warmup_step + 1))) /

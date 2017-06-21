@@ -39,30 +39,10 @@
 #include <iostream>
 #include <fstream>
 #include <array>
+#include "udefs.hpp"
 
 #define GHOST_ID_X 10000
 #define GHOST_ID_Y 20000
-
-enum class location { cell = 0, edge, vertex };
-
-constexpr unsigned int num_colors(location loc) {
-  return loc == location::cell ? 2 : (loc == location::edge ? 3 : 1);
-}
-
-static constexpr size_t num_nodes(const unsigned int isize,
-                                  const unsigned int jsize,
-                                  const unsigned int nhalo) {
-  return (isize + nhalo * 2) * (jsize + nhalo * 2);
-}
-
-static constexpr size_t num_neighbours(const location primary_loc,
-                                       const location neigh_loc) {
-  return primary_loc == location::cell
-             ? 3
-             : (primary_loc == location::edge
-                    ? (neigh_loc == location::edge ? 4 : 2)
-                    : (6));
-}
 
 class neighbours_table {
 public:
@@ -96,13 +76,10 @@ public:
     return m_data[index_in_tables(i, c, j, neigh_idx)];
   }
 
-  //  size_t &operator()(size_t index, unsigned int neigh_idx) {
+  size_t &operator()(size_t idx, unsigned int neigh_idx) {
 
-  //    assert(index_in_tables(index, neigh_idx) <
-  //           size_of_array(m_ploc, m_nloc, m_isize, m_jsize, m_nhalo));
-
-  //    return m_data[index_in_tables(index, neigh_idx)];
-  //  }
+    return m_data[neigh_index(idx, neigh_idx)];
+  }
 
   size_t last_compute_domain_idx() {
     return num_neighbours(m_ploc, m_nloc) * (m_isize)*num_colors(m_ploc) *
@@ -129,24 +106,11 @@ public:
                (m_isize + m_nhalo * 2);
   }
 
-  //  size_t index_in_tables(size_t index, unsigned int neigh_idx) {
-  //    if (index < last_compute_domain_idx()) {
-  //      return index + neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
-  //    } else if (index < last_west_halo_idx()) {
-  //      return index + neigh_idx * m_jsize * m_nhalo * num_colors(m_ploc);
-  //    } else if (index < last_south_halo_idx()) {
-  //      return index +
-  //             neigh_idx * m_nhalo * (m_nhalo + m_isize) * num_colors(m_ploc);
-  //    } else if (index < last_east_halo_idx()) {
-  //      return index +
-  //             neigh_idx * (m_nhalo + m_jsize) * m_nhalo * num_colors(m_ploc);
-  //    } else if (index < last_north_halo_idx()) {
-  //      return index +
-  //             neigh_idx * m_nhalo * num_colors(m_ploc) * (m_isize + m_nhalo *
-  //             2);
-  //    }
-  //    return 0;
-  //  }
+  size_t neigh_index(size_t idx, unsigned int neigh_idx) {
+    assert(idx < last_compute_domain_idx());
+
+    return idx + neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
+  }
   size_t index_in_tables(int i, unsigned int c, int j, unsigned int neigh_idx) {
     assert(i >= -(int)m_nhalo && i < (int)(m_isize + m_nhalo));
     assert(c < num_colors(m_ploc));
@@ -246,8 +210,6 @@ public:
       return m_elements_to_edges(i, c, j, neigh_idx);
 
     return m_elements_to_vertices(i, c, j, neigh_idx);
-
-    //    return m_elements_to_vertices(index(i, c, j), neigh_idx);
   }
 
   neighbours_table &table(location neigh_loc) {
@@ -435,6 +397,12 @@ class mesh {
   }
 
 public:
+  nodes &get_nodes() { return m_nodes; }
+
+  elements &get_elements(location loc) {
+    return (loc == location::cell) ? m_cells : m_edges;
+  }
+
   mesh(const unsigned int isize, const unsigned int jsize,
        const unsigned int nhalo)
       : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo), m_i_domain{0, isize},
@@ -813,6 +781,28 @@ public:
     return i + c * (m_isize) + j * (m_isize)*num_colors(primary_loc);
   }
 
+  void test() {
+    int idx = 0;
+    for (int n = 0; n < num_neighbours(location::cell, location::vertex); ++n) {
+      idx = 0;
+      for (int j = 0; j < (int)m_jsize; ++j) {
+        for (int c = 0; c < num_colors(location::cell); ++c) {
+          for (int i = 0; i < (int)m_isize; ++i) {
+            if (m_cells.table(location::vertex).index_in_tables(i, c, j, n) !=
+                m_cells.table(location::vertex).neigh_index(idx, n))
+              std::cout << "ERROR " << i << " " << c << " " << j << " " << n
+                        << " ; "
+                        << m_cells.table(location::vertex)
+                               .index_in_tables(i, c, j, n)
+                        << " -> [" << idx << "]"
+                        << m_cells.table(location::vertex).neigh_index(idx, n)
+                        << std::endl;
+            ++idx;
+          }
+        }
+      }
+    }
+  }
   void print() {
     std::stringstream ss;
     ss << "$MeshFormat" << std::endl
