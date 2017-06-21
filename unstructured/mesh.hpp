@@ -803,6 +803,23 @@ public:
         }
       }
     }
+
+    for (int j = 1; j < (int)m_jsize - 1; ++j) {
+      for (int i = 1; i < (int)m_isize - 1; ++i) {
+        if ((m_cells.table(location::cell)(i, 0, j, 0) !=
+             m_cells.index(i - 1, 1, j)) ||
+            (m_cells.table(location::cell)(i, 0, j, 1) !=
+             m_cells.index(i, 1, j)) ||
+            (m_cells.table(location::cell)(i, 0, j, 2) !=
+             m_cells.index(i, 1, j - 1)))
+          std::cout << "ERROR " << i << " "
+                    << " " << j << " "
+                    << " ; " << m_cells.table(location::cell)(i, 0, j, 0) << " "
+                    << m_cells.index(i, 1, j) << " " << m_cells.index(i, 0, j)
+                    << std::endl;
+        ++idx;
+      }
+    }
   }
   void print() {
     std::stringstream ss;
