@@ -6,6 +6,8 @@
 #include "../defs.h"
 #include "libjson.h"
 #include "mesh.hpp"
+#include "hilbert.hpp"
+#include "converter.hpp"
 
 int parse_uint(const char *str, unsigned int *output) {
   char *next;
@@ -52,4 +54,10 @@ int main(int argc, char **argv) {
   mesh mesh_(isize, jsize, 2);
   mesh_.test();
   mesh_.print();
+  std::vector<std::array<int, 2>> inds;
+  hilbert(inds, 0, 0, 8, 0, 0, 8, 3);
+
+  umesh umesh_(mesh_.compd_size(), mesh_.totald_size());
+  mesh_to_hilbert(umesh_, mesh_);
+  umesh_.print();
 }

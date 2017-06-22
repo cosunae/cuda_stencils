@@ -16,6 +16,14 @@ enum stencils {
   num_bench_st
 };
 
+#ifdef __GNUC__
+#define GT_FORCE_INLINE inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+#define GT_FORCE_INLINE inline __forceinline
+#else
+#define GT_FORCE_INLINE inline
+#endif
+
 #ifndef GT_FUNCTION
 #ifdef __CUDACC__
 #define GT_FUNCTION __host__ __device__ __forceinline__

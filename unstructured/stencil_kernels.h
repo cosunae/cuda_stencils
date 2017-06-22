@@ -3,6 +3,8 @@
 #include "../defs.h"
 #include "udefs.hpp"
 #include "helpers.hpp"
+#include "converter.hpp"
+#include "umesh.hpp"
 
 template <typename T>
 __global__ void copy(T const *__restrict__ a, T *__restrict__ b,
@@ -77,13 +79,15 @@ template <typename T>
 __global__ void
 on_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
               const unsigned int init_offset, const unsigned int kstride,
-              const unsigned int ksize, const unsigned int mesh_size, neighbours_table table) {
+              const unsigned int ksize, const unsigned int mesh_size,
+              sneighbours_table table) {
   const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
   unsigned int idx = idx2;
 
   if (idx < mesh_size) {
     for (int k = 0; k < ksize; ++k) {
-      b[idx] = a[idx + table(idx2, 0)] + a[idx + table(idx2, 1)] + a[idx + table(idx2, 2)];
+      b[idx] = a[idx + table(idx2, 0)] + a[idx + table(idx2, 1)] +
+               a[idx + table(idx2, 2)];
       idx += kstride;
     }
   }
@@ -391,7 +395,7 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     dim3 block_dim1d(block_size_x, 1);
 
     copy_mesh<<<num_blocks1d, block_dim1d>>>(a_cell, b_cell, init_offset,
-                                         kstride_cell, ksize, mesh_size);
+                                             kstride_cell, ksize, mesh_size);
     // gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
@@ -446,14 +450,13 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
                                     kstride_cell, init_offset)] +
                      a_cell[uindex3(i, 1, j - 1, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)]))
-printf("Error c0 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+              printf("Error c0 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
                      b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)],
                      a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)]);
 
-
-                if((b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+            if ((b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
                                 kstride_cell, init_offset)] !=
                  a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
                                 kstride_cell, init_offset)] +
@@ -461,16 +464,16 @@ printf("Error c0 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
                                     kstride_cell, init_offset)] +
                      a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
                                     kstride_cell, init_offset)])) {
-              printf("Error c1 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)],
-a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
-                                kstride_cell, init_offset)] +
-                     a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)] +
-                     a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)]
-                                    );
+              printf(
+                  "Error c1 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+                  b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+                                 kstride_cell, init_offset)],
+                  a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                 kstride_cell, init_offset)] +
+                      a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
+                                     kstride_cell, init_offset)] +
+                      a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
+                                     kstride_cell, init_offset)]);
             }
           }
         }
@@ -483,25 +486,53 @@ a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
 
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
-    on_cells_mesh<<<num_blocks1d, block_dim1d>>>(a_cell, b_cell, init_offset,
-                                         kstride_cell, ksize, mesh_size, mesh_.get_elements(location::cell).table(location::cell));
+    on_cells_mesh<<<num_blocks1d, block_dim1d>>>(
+        a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
+        mesh_.get_elements(location::cell).table(location::cell));
     // gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
 
     t2 = std::chrono::high_resolution_clock::now();
     if (t > warmup_step)
-      timings[uoncellsmesh_st] += std::chrono::duration<double>(t2 - t1).count();
+      timings[uoncellsmesh_st] +=
+          std::chrono::duration<double>(t2 - t1).count();
     if (!t) {
       for (unsigned int i = 0; i < isize; ++i) {
         for (unsigned int j = 0; j < jsize; ++j) {
           for (unsigned int k = 0; k < ksize; ++k) {
-            }
           }
         }
       }
+    }
 
+    //----------------------------------------//
+    //--------------  HILBER MESH ------------//
+    //----------------------------------------//
 
+    gpuErrchk(cudaDeviceSynchronize());
+    t1 = std::chrono::high_resolution_clock::now();
 
+    umesh umesh_(mesh_.compd_size(), mesh_.totald_size());
 
+    mesh_to_hilbert(umesh_, mesh_);
+
+    //    on_cells_mesh<<<num_blocks1d, block_dim1d>>>(
+    //        a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
+    //        mesh_.get_elements(location::cell).table(location::cell));
+    //    // gpuErrchk(cudaPeekAtLastError());
+    //    gpuErrchk(cudaDeviceSynchronize());
+
+    //    t2 = std::chrono::high_resolution_clock::now();
+    //    if (t > warmup_step)
+    //      timings[uoncellsmesh_st] +=
+    //          std::chrono::duration<double>(t2 - t1).count();
+    //    if (!t) {
+    //      for (unsigned int i = 0; i < isize; ++i) {
+    //        for (unsigned int j = 0; j < jsize; ++j) {
+    //          for (unsigned int k = 0; k < ksize; ++k) {
+    //          }
+    //        }
+    //      }
+    //    }
   }
 }

@@ -194,6 +194,10 @@ public:
         size_of_mesh_fields<double>(location::vertex, isize, jsize, nhalo));
 #endif
   }
+  size_t totald_size() {
+    return (m_isize + m_nhalo * 2) * (m_jsize + m_nhalo * 2);
+  }
+
   size_t last_compute_domain_idx() { return m_isize * m_jsize; }
 
   size_t &neighbor(location neigh_loc, int i, unsigned int c, int j,
@@ -218,30 +222,61 @@ private:
 };
 
 //////////////// conventions ///////////////////
-/// cell to vertex
-/// 0 -------- 1
-///   \      /
-///    \    /
-///     \  /
-///      2
-
+///  cell to vertex
+/// ----------------
+///
+/// color 0
 ///
 ///      0
 ///     / \
 ///    /   \
 ///   /     \
 ///  2-------1
+///
+/// color 1
+///
+/// 0 -------- 1
+///   \      /
+///    \    /
+///     \  /
+///      2
+///
+///
+///   cell to cell
+///----------------
+///
+///  color 0
+///   _________ _________
+///  \        /\        /
+///   \   0  /  \  1   /
+///    \    /    \    /
+///     \  /      \  /
+///      \/________\/
+///       \        /
+///        \  2   /
+///         \    /
+///          \  /
+///           \/
+///
+///
+/// color 1
+///
+///           /\
+///          /  \
+///         /    \
+///        /  2   \
+///       /________\
+///      /\        /\
+///     /  \      /  \
+///    /    \    /    \
+///   /   1  \  /  0   \
+///  /________\/________\
+///
+///
 
 class mesh {
 
   size_t end_idx_compute_domain() { return m_isize * m_jsize; }
-
-  template <typename T>
-  static constexpr size_t
-  size_of_mesh_fields(const location loc, const unsigned int isize,
-                      const unsigned int jsize, const unsigned int nhalo) {
-    return num_nodes(isize, jsize, nhalo) * num_colors(loc) * sizeof(T);
-  }
 
 public:
   nodes &get_nodes() { return m_nodes; }
@@ -250,8 +285,16 @@ public:
     return (loc == location::cell) ? m_cells : m_edges;
   }
 
-  mesh(const unsigned int isize, const unsigned int jsize,
-       const unsigned int nhalo)
+  size_t compd_size() { return m_isize * m_jsize; }
+
+  size_t totald_size() {
+    return (m_isize + m_nhalo * 2) * (m_jsize + m_nhalo * 2);
+  }
+
+  size_t isize() const { return m_isize; }
+  size_t jsize() const { return m_jsize; }
+
+  mesh(const size_t isize, const size_t jsize, const unsigned int nhalo)
       : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo), m_i_domain{0, isize},
         m_j_domain{0, jsize}, m_cells(location::cell, isize, jsize, nhalo),
         m_edges(location::edge, isize, jsize, nhalo),
