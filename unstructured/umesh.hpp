@@ -137,14 +137,16 @@ public:
 
   umesh() = delete;
 
-  umesh(const size_t compd_size, const size_t totald_size)
+  umesh(const size_t compd_size, const size_t totald_size,
+        const size_t nodes_totald_size)
       : m_compd_size(compd_size), m_totald_size(totald_size),
+        m_nodes_totald_size(nodes_totald_size),
         m_cells(location::cell, compd_size * num_colors(location::cell),
                 totald_size * num_colors(location::cell)),
         m_edges(location::edge, compd_size * num_colors(location::edge),
                 totald_size * num_colors(location::edge)),
         m_nodes(compd_size * num_colors(location::vertex),
-                totald_size * num_colors(location::vertex)) {}
+                nodes_totald_size * num_colors(location::vertex)) {}
 
   void print() {
     std::stringstream ss;
@@ -165,9 +167,9 @@ public:
     //    ss << num_nodes(m_isize + 3, m_jsize + 3, 0) * 2 // edges
     auto cell_to_vertex = m_cells.table(location::vertex);
 
-    ss << cell_to_vertex.compd_size() << std::endl;
+    ss << cell_to_vertex.totald_size() << std::endl;
 
-    for (size_t idx = 0; idx < cell_to_vertex.compd_size(); ++idx) {
+    for (size_t idx = 0; idx < cell_to_vertex.totald_size(); ++idx) {
 
       ss << idx + 1 << " 2 4 1 1 1 28 " << cell_to_vertex(idx, 0) + 1 << " "
          << cell_to_vertex(idx, 1) + 1 << " " << cell_to_vertex(idx, 2) + 1
@@ -182,7 +184,7 @@ public:
   }
 
 private:
-  size_t m_compd_size, m_totald_size;
+  size_t m_compd_size, m_totald_size, m_nodes_totald_size;
 
   unodes m_nodes;
   uelements m_cells;

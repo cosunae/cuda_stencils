@@ -57,7 +57,8 @@ int main(int argc, char **argv) {
   std::vector<std::array<int, 2>> inds;
   hilbert(inds, 0, 0, 8, 0, 0, 8, 3);
 
-  umesh umesh_(mesh_.compd_size(), mesh_.totald_size());
+  umesh umesh_(mesh_.compd_size(), mesh_.totald_size(),
+               mesh_.nodes_totald_size());
   mesh_to_hilbert(umesh_, mesh_);
   umesh_.print();
 }

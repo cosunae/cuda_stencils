@@ -512,7 +512,8 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
 
-    umesh umesh_(mesh_.compd_size(), mesh_.totald_size());
+    umesh umesh_(mesh_.compd_size(), mesh_.totald_size(),
+                 mesh_.nodes_totald_size());
 
     mesh_to_hilbert(umesh_, mesh_);
 

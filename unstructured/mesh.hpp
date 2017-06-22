@@ -174,6 +174,10 @@ class nodes {
   }
 
 public:
+  size_t totald_size() const {
+    return num_nodes(m_isize, m_jsize, m_nhalo + 1);
+  }
+
   nodes(size_t isize, size_t jsize, size_t nhalo)
       : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo),
         m_vertex_to_cells(location::vertex, location::cell, isize, jsize,
@@ -291,12 +295,15 @@ public:
     return (m_isize + m_nhalo * 2) * (m_jsize + m_nhalo * 2);
   }
 
+  size_t nodes_totald_size() const { return m_nodes.totald_size(); }
   size_t isize() const { return m_isize; }
   size_t jsize() const { return m_jsize; }
+  size_t nhalo() const { return m_nhalo; }
 
-  mesh(const size_t isize, const size_t jsize, const unsigned int nhalo)
-      : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo), m_i_domain{0, isize},
-        m_j_domain{0, jsize}, m_cells(location::cell, isize, jsize, nhalo),
+  mesh(const size_t isize, const size_t jsize, const size_t nhalo)
+      : m_isize(isize), m_jsize(jsize), m_nhalo(nhalo),
+        m_i_domain{0, (int)isize}, m_j_domain{0, (int)jsize},
+        m_cells(location::cell, isize, jsize, nhalo),
         m_edges(location::edge, isize, jsize, nhalo),
         m_nodes(isize, jsize, nhalo) {
 
@@ -710,6 +717,7 @@ public:
       }
     }
   }
+
   void print() {
     std::stringstream ss;
     ss << "$MeshFormat" << std::endl
