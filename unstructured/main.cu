@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   printf("--------------------------\n");
   printf("copy : %f GB/s, time : %f \n",
          tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
-             (timings[copy_st] / (double)(tsteps - (warmup_step + 1))) /
+             (timings[ucopy_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
          timings[ucopy_st]);
 
@@ -91,6 +91,20 @@ int main(int argc, char **argv) {
          tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
              (timings[ucopymesh_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
-         timings[copy_st]);
+         timings[ucopymesh_st]);
+
+  printf("--------------------------\n");
+  printf("on_cells : %f GB/s, time : %f \n",
+         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+             (timings[uoncells_st] / (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
+         timings[uoncells_st]);
+
+  printf("--------------------------\n");
+  printf("on_cells_mesh : %f GB/s, time : %f \n",
+         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+             (timings[uoncellsmesh_st] / (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
+         timings[uoncellsmesh_st]);
 
 }
