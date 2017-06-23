@@ -44,6 +44,11 @@
 
 class ntable {
 public:
+  GT_FUNCTION
+  ntable(ntable const &other)
+      : m_ploc(other.m_ploc), m_nloc(other.m_nloc), m_size(other.m_size),
+        m_data(other.m_data) {}
+
   ntable(location primary_loc, location neigh_loc, size_t size)
       : m_ploc(primary_loc), m_nloc(neigh_loc), m_size(size) {
 #ifdef ENABLE_GPU
@@ -80,6 +85,11 @@ public:
     return num_nodes(isize, jsize, nhalo + 1) * num_colors(primary_loc) *
            sizeof(size_t) * num_neighbours(primary_loc, neigh_loc);
   }
+
+  GT_FUNCTION
+  sneighbours_table(sneighbours_table const &other)
+      : m_isize(other.m_isize), m_jsize(other.m_jsize), m_nhalo(other.m_nhalo),
+        ntable(other) {}
 
   sneighbours_table(location primary_loc, location neigh_loc, size_t isize,
                     size_t jsize, size_t nhalo)
