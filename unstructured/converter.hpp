@@ -188,6 +188,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
     }
   }
 
+/*
   for (int i = -(int)mesh_.nhalo(); i < (int)mesh_.isize() + (int)mesh_.nhalo();
        ++i) {
     for (size_t c = 0; c < num_colors(location::cell); ++c) {
@@ -198,7 +199,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
       }
     }
   }
-
+*/
   for (size_t cnt = 0; cnt != mesh_.nodes_totald_size(); ++cnt) {
     umesh_.get_nodes().x(cnt) = mesh_.get_nodes().x(cnt);
     umesh_.get_nodes().y(cnt) = mesh_.get_nodes().y(cnt);

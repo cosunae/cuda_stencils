@@ -23,12 +23,15 @@ __global__ void copy(T const *__restrict__ a, T *__restrict__ b,
                                : jsize - blockIdx.y * BLOCKSIZEY;
 
   unsigned idx = uindex(i, 0, j, cstride, jstride, init_offset);
+  if (threadIdx.x < bsi && threadIdx.y < bsj) {
+
   for (int k = 0; k < ksize; ++k) {
     if (threadIdx.x < bsi && threadIdx.y < bsj) {
       b[idx] = a[idx];
       b[idx + cstride] = a[idx + cstride];
     }
     idx += kstride;
+  }
   }
 }
 
@@ -133,6 +136,7 @@ on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
 
   if (idx2 < mesh_size) {
     for (int k = 0; k < (int)ksize; ++k) {
+if(k==0) printf("For %ul  n : %ul %ul \n", idx, tab[threadIdx.x + 0 * shared_stride], table.raw_data(idx2+0*stride));
       b[idx] = a[k*kstride+tab[threadIdx.x + 0 * shared_stride]] +
                a[k*kstride+tab[threadIdx.x + 1 * shared_stride]] +
                a[k*kstride+tab[threadIdx.x + 2 * shared_stride]];
@@ -616,9 +620,15 @@ std::cout << " SIZ " << mesh_.totald_size()*ksize << std::endl;
     //----------------------------------------//
 
     std::cout << "Running hilber cells" << std::endl;
-
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
+
+    auto cells= umesh_.get_elements(location::cell);
+    auto cell_to_cell = cells.table(location::cell);
+
+    for(int i=0; i < cell_to_cell.compd_size() ; ++i) {
+        std::cout << "Ne " <<  i << " : " << cell_to_cell(i,0) << " " << cell_to_cell(i,1) << " " << cell_to_cell(i,2) << std::endl;
+    }
 
     on_cells_umesh<<<num_blocks1d, block_dim1d,block_dim1d.x*num_neighbours(location::cell, location::cell)*sizeof(size_t)>>>(
         a_ucell, b_cell, umesh_.totald_size()*num_colors(location::cell), ksize, mesh_size,
