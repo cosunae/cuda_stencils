@@ -373,6 +373,11 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
   std::chrono::high_resolution_clock::time_point t1, t2;
 
+  umesh umesh_(mesh_.compd_size(), mesh_.totald_size(),
+               mesh_.nodes_totald_size());
+
+  mesh_to_hilbert(umesh_, mesh_);
+
   for (unsigned int t = 0; t < tsteps; t++) {
 
     //----------------------------------------//
@@ -547,11 +552,6 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
-
-    umesh umesh_(mesh_.compd_size(), mesh_.totald_size(),
-                 mesh_.nodes_totald_size());
-
-    mesh_to_hilbert(umesh_, mesh_);
 
     on_cells_umesh<<<num_blocks1d, block_dim1d>>>(
         a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
