@@ -84,8 +84,9 @@ on_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
   const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
   unsigned int idx = idx2;
 
-  extern __shared__ size_t tab[];
-
+//  extern __shared__ size_t tab[];
+//printf("DD %d %d \n", threadIdx.x, blockIdx.x);
+/*
   const int niter = (table.size() + blockDim.x - 1) / blockDim.x;
   for (int i = 0; i < niter; ++i) {
     const int idx = threadIdx.x * niter * blockDim.x;
@@ -93,15 +94,15 @@ on_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
       tab[idx] = table.raw_data(idx);
     }
   }
-
+*/
   const size_t stride =
       table.isize() * table.jsize() * num_colors(table.nloc());
 
   if (idx < mesh_size) {
     for (int k = 0; k < ksize; ++k) {
-      b[idx] = a[idx + tab[idx2 + 0 * stride]] +
-               a[idx + tab[idx2 + 1 * stride]] +
-               a[idx + tab[idx2 + 2 * stride]];
+      b[idx] = a[idx + table.raw_data(idx2 + 0 * stride)] +
+               a[idx + table.raw_data(idx2 + 1 * stride)] +
+               a[idx + table.raw_data(idx2 + 2 * stride)];
       idx += kstride;
     }
   }
@@ -517,12 +518,15 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     //-------------  ONCELLS MESH ------------//
     //----------------------------------------//
 
+    std::cout << "Running on cells" << std::endl;
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
+std::cout << " S " << num_blocks1d.x << " " << block_dim1d.x << " " << num_blocks1d.y << " " << block_dim1d.y <<  " " << mesh_.get_elements(location::cell).table(location::cell).size() *
+            sizeof(size_t) << std::endl;
     on_cells_mesh<<<
-        num_blocks1d, block_dim1d,
+        num_blocks1d, block_dim1d/*,
         mesh_.get_elements(location::cell).table(location::cell).size() *
-            sizeof(size_t)>>>(
+            sizeof(size_t) */>>>(
         a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
         mesh_.get_elements(location::cell).table(location::cell));
     // gpuErrchk(cudaPeekAtLastError());
@@ -532,6 +536,8 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     if (t > warmup_step)
       timings[uoncellsmesh_st] +=
           std::chrono::duration<double>(t2 - t1).count();
+    std::cout << "DONE on cells" << std::endl;
+
     if (!t) {
       for (unsigned int i = 0; i < isize; ++i) {
         for (unsigned int j = 0; j < jsize; ++j) {
@@ -545,19 +551,23 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     //--------------  HILBER MESH ------------//
     //----------------------------------------//
 
+    std::cout << "Running hilber cells" << std::endl;
+/*
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
 
     umesh umesh_(mesh_.compd_size(), mesh_.totald_size(),
                  mesh_.nodes_totald_size());
+    std::cout << "Running hilber0 cells" << std::endl;
 
     mesh_to_hilbert(umesh_, mesh_);
+    std::cout << "Running hilber1 cells" << std::endl;
 
     on_cells_umesh<<<num_blocks1d, block_dim1d>>>(
         a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
         umesh_.get_elements(location::cell).table(location::cell));
     gpuErrchk(cudaDeviceSynchronize());
-
+*/
     //    t2 = std::chrono::high_resolution_clock::now();
     //    if (t > warmup_step)
     //      timings[uoncellsmesh_st] +=
