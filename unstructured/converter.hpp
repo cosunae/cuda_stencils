@@ -70,12 +70,13 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
 
   auto ucells = umesh_.get_elements(location::cell);
 
-  std::cout << "size " <<  inds.size() << std::endl;
+  std::cout << "size " << inds.size() << std::endl;
   for (size_t idx = 0; idx != inds.size(); ++idx) {
     int i = inds[idx][0];
     int j = inds[idx][1];
 
-    if(idx%1000 == 0) std::cout << "Hilber -> " << idx << std::endl;
+    if (idx % 1000 == 0)
+      std::cout << "Hilber -> " << idx << std::endl;
     // color 0
     if (i > 0) {
       auto pos =
@@ -83,7 +84,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
       assert(pos != std::end(inds));
 
       ucells.table(location::cell)(idx * 2, 0) =
-          std::distance(inds.begin(), pos) + 1;
+          std::distance(inds.begin(), pos) * 2 + 1;
 
     } else {
       ucells.table(location::cell)(idx * 2, 0) = halo_idx;
@@ -97,7 +98,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
       assert(pos != std::end(inds));
 
       ucells.table(location::cell)(idx * 2, 1) =
-          std::distance(inds.begin(), pos) + 1;
+          std::distance(inds.begin(), pos) * 2 + 1;
     }
     if (j > 0) {
       auto pos =
@@ -105,7 +106,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
       assert(pos != std::end(inds));
 
       ucells.table(location::cell)(idx * 2, 2) =
-          std::distance(inds.begin(), pos) + 1;
+          std::distance(inds.begin(), pos) * 2 + 1;
     } else {
       ucells.table(location::cell)(idx * 2, 2) = halo_idx;
       halo_idxs_pairs[mesh_.get_elements(location::cell)
@@ -120,7 +121,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
       assert(pos != std::end(inds));
 
       ucells.table(location::cell)(idx * 2 + 1, 0) =
-          std::distance(inds.begin(), pos);
+          std::distance(inds.begin(), pos) * 2;
     } else {
       ucells.table(location::cell)(idx * 2 + 1, 0) = halo_idx;
       halo_idxs_pairs[mesh_.get_elements(location::cell)
@@ -133,7 +134,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
       assert(pos != std::end(inds));
 
       ucells.table(location::cell)(idx * 2 + 1, 1) =
-          std::distance(inds.begin(), pos);
+          std::distance(inds.begin(), pos) * 2;
     }
     if (j < jsize - 1) {
       auto pos =
@@ -141,7 +142,7 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
       assert(pos != std::end(inds));
 
       ucells.table(location::cell)(idx * 2 + 1, 2) =
-          std::distance(inds.begin(), pos);
+          std::distance(inds.begin(), pos) * 2;
     } else {
       ucells.table(location::cell)(idx * 2 + 1, 2) = halo_idx;
       halo_idxs_pairs[mesh_.get_elements(location::cell)
