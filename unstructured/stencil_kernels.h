@@ -519,9 +519,10 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
-    on_cells_mesh<<<
-        num_blocks1d, block_dim1d,
-        mesh_.get_elements(location::cell).table(location::cell).size()>>>(
+    on_cells_mesh<<<num_blocks1d, block_dim1d,
+                    mesh_.get_elements(location::cell)
+                        .table(location::cell)
+                        .sizeof(size_t)>>>(
         a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
         mesh_.get_elements(location::cell).table(location::cell));
     // gpuErrchk(cudaPeekAtLastError());
