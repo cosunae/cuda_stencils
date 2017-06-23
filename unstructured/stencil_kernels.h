@@ -374,6 +374,11 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
   std::chrono::high_resolution_clock::time_point t1, t2;
 
+  umesh umesh_(mesh_.compd_size(), mesh_.totald_size(),
+               mesh_.nodes_totald_size());
+
+  mesh_to_hilbert(umesh_, mesh_);
+
   for (unsigned int t = 0; t < tsteps; t++) {
 
     //----------------------------------------//
@@ -555,13 +560,6 @@ std::cout << " S " << num_blocks1d.x << " " << block_dim1d.x << " " << num_block
 /*
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
-
-    umesh umesh_(mesh_.compd_size(), mesh_.totald_size(),
-                 mesh_.nodes_totald_size());
-    std::cout << "Running hilber0 cells" << std::endl;
-
-    mesh_to_hilbert(umesh_, mesh_);
-    std::cout << "Running hilber1 cells" << std::endl;
 
     on_cells_umesh<<<num_blocks1d, block_dim1d>>>(
         a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
