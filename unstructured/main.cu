@@ -106,5 +106,11 @@ int main(int argc, char **argv) {
              (timings[uoncellsmesh_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
          timings[uoncellsmesh_st]);
+  printf("--------------------------\n");
+  printf("on_cells_mesh_hilber : %f GB/s, time : %f \n",
+         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+             (timings[uoncellsmesh_hilbert_st] / (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
+         timings[uoncellsmesh_hilbert_st]);
 
 }

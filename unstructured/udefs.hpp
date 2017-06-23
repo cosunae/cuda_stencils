@@ -5,6 +5,7 @@ enum ustencils {
   ucopymesh_st,
   uoncells_st,
   uoncellsmesh_st,
+  uoncellsmesh_hilbert_st,
   unum_bench_st
 };
 

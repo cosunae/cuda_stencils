@@ -70,10 +70,12 @@ void mesh_to_hilbert(umesh &umesh_, mesh &mesh_) {
 
   auto ucells = umesh_.get_elements(location::cell);
 
+  std::cout << "size " <<  inds.size() << std::endl;
   for (size_t idx = 0; idx != inds.size(); ++idx) {
     int i = inds[idx][0];
     int j = inds[idx][1];
 
+    if(idx%1000 == 0) std::cout << "Hilber -> " << idx << std::endl;
     // color 0
     if (i > 0) {
       auto pos =

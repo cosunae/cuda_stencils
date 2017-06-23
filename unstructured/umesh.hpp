@@ -68,6 +68,9 @@ public:
       return m_elements_to_edges;
     return m_elements_to_vertices;
   }
+ 
+  GT_FUNCTION
+  size_t totald_size() { return m_totald_size;}
 
 private:
   location m_loc;
@@ -99,6 +102,7 @@ public:
 
   double &x(unsigned int idx) { return m_x[idx]; }
   double &y(unsigned int idx) { return m_y[idx]; }
+  GT_FUNCTION
   size_t totald_size() const { return m_totald_size; }
   size_t compd_size() const { return m_compd_size; }
 
@@ -147,6 +151,9 @@ public:
                 totald_size * num_colors(location::edge)),
         m_nodes(compd_size * num_colors(location::vertex),
                 nodes_totald_size * num_colors(location::vertex)) {}
+
+  GT_FUNCTION
+  size_t totald_size() { return m_totald_size;}
 
   void print() {
     std::stringstream ss;
