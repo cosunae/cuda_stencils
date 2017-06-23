@@ -328,6 +328,50 @@ on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
 //}
 
 template <typename T>
+void verify_on_cells(T *b_cell, T *a_cell, size_t isize, size_t jsize,
+                     size_t ksize, size_t cstride_cell, size_t jstride_cell,
+                     size_t kstride_cell, size_t init_offset) {
+  for (unsigned int i = 0; i < isize; ++i) {
+    for (unsigned int j = 0; j < jsize; ++j) {
+      for (unsigned int k = 0; k < ksize; ++k) {
+        if ((b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                            kstride_cell, init_offset)] !=
+             a_cell[uindex3(i - 1, 1, j, k, cstride_cell, jstride_cell,
+                            kstride_cell, init_offset)] +
+                 a_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] +
+                 a_cell[uindex3(i, 1, j - 1, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)]))
+          printf("Error c0 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+                 b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)],
+                 a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)]);
+
+        if ((b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+                            kstride_cell, init_offset)] !=
+             a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                            kstride_cell, init_offset)] +
+                 a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] +
+                 a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)])) {
+          printf("Error c1 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
+                 b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)],
+                 a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
+                                kstride_cell, init_offset)] +
+                     a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)] +
+                     a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
+                                    kstride_cell, init_offset)]);
+        }
+      }
+    }
+  }
+}
+
+template <typename T>
 void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
             const unsigned int jsize, const unsigned ksize,
             const unsigned tsteps, const unsigned warmup_step) {
@@ -478,45 +522,8 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     if (t > warmup_step)
       timings[uoncells_st] += std::chrono::duration<double>(t2 - t1).count();
     if (!t) {
-      for (unsigned int i = 0; i < isize; ++i) {
-        for (unsigned int j = 0; j < jsize; ++j) {
-          for (unsigned int k = 0; k < ksize; ++k) {
-            if ((b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
-                                kstride_cell, init_offset)] !=
-                 a_cell[uindex3(i - 1, 1, j, k, cstride_cell, jstride_cell,
-                                kstride_cell, init_offset)] +
-                     a_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)] +
-                     a_cell[uindex3(i, 1, j - 1, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)]))
-              printf("Error c0 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                     b_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)],
-                     a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)]);
-
-            if ((b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
-                                kstride_cell, init_offset)] !=
-                 a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
-                                kstride_cell, init_offset)] +
-                     a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)] +
-                     a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
-                                    kstride_cell, init_offset)])) {
-              printf(
-                  "Error c1 in (%d,%d,%d) : %f %f\n", (int)i, (int)j, (int)k,
-                  b_cell[uindex3(i, 1, j, k, cstride_cell, jstride_cell,
-                                 kstride_cell, init_offset)],
-                  a_cell[uindex3(i, 0, j, k, cstride_cell, jstride_cell,
-                                 kstride_cell, init_offset)] +
-                      a_cell[uindex3(i + 1, 0, j, k, cstride_cell, jstride_cell,
-                                     kstride_cell, init_offset)] +
-                      a_cell[uindex3(i, 0, j + 1, k, cstride_cell, jstride_cell,
-                                     kstride_cell, init_offset)]);
-            }
-          }
-        }
-      }
+      verify_on_cells<T>(b_cell, a_cell, isize, jsize, ksize, cstride_cell,
+                         jstride_cell, kstride_cell, init_offset);
     }
 
     //----------------------------------------//
