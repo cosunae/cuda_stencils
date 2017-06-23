@@ -53,6 +53,16 @@ public:
 #endif
   }
 
+  GT_FUNCTION
+  size_t size() const { return m_size; }
+  GT_FUNCTION
+  size_t &raw_data(const unsigned int idx) { return m_data[idx]; }
+
+  GT_FUNCTION
+  location ploc() const { return m_ploc; }
+  GT_FUNCTION
+  location nloc() const { return m_nloc; }
+
 protected:
   location m_ploc;
   location m_nloc;
@@ -195,6 +205,13 @@ public:
     std::cout << "ERROR " << std::endl;
     return 0;
   }
+
+  GT_FUNCTION
+  size_t isize() const { return m_isize; }
+  GT_FUNCTION
+  size_t jsize() const { return m_jsize; }
+  GT_FUNCTION
+  size_t nhalo() const { return m_nhalo; }
 
 private:
   size_t m_isize, m_jsize, m_nhalo;

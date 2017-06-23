@@ -64,14 +64,14 @@ __global__ void on_cells(T const *__restrict__ a, T *__restrict__ b,
                                : jsize - blockIdx.y * BLOCKSIZEY;
 
   unsigned idx = uindex(i, 0, j, cstride, jstride, init_offset);
-  for (int k = 0; k < ksize; ++k) {
-    if (threadIdx.x < bsi && threadIdx.y < bsj) {
+  if (threadIdx.x < bsi && threadIdx.y < bsj) {
+    for (int k = 0; k < ksize; ++k) {
       // color 0
       b[idx] = a[idx + cstride - 1] + a[idx + cstride] + a[idx - cstride];
       // color 1
       b[idx + cstride] = a[idx] + a[idx + 1] + a[idx + cstride * 2];
+      idx += kstride;
     }
-    idx += kstride;
   }
 }
 
@@ -81,6 +81,38 @@ on_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
               const unsigned int init_offset, const unsigned int kstride,
               const unsigned int ksize, const unsigned int mesh_size,
               sneighbours_table table) {
+  const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned int idx = idx2;
+
+  extern __shared__ size_t tab[];
+
+  const int niter = (table.size() + blockDim.x - 1) / blockDim.x;
+  for (int i = 0; i < niter; ++i) {
+    const int idx = threadIdx.x * niter * blockDim.x;
+    if (idx < table.size()) {
+      tab[idx] = table.raw_data(idx);
+    }
+  }
+
+  const size_t stride =
+      table.isize() * table.jsize() * num_colors(table.nloc());
+
+  if (idx < mesh_size) {
+    for (int k = 0; k < ksize; ++k) {
+      b[idx] = a[idx + tab[idx2 + 0 * stride]] +
+               a[idx + tab[idx2 + 1 * stride]] +
+               a[idx + tab[idx2 + 2 * stride]];
+      idx += kstride;
+    }
+  }
+}
+
+template <typename T>
+__global__ void
+on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
+               const unsigned int init_offset, const unsigned int kstride,
+               const unsigned int ksize, const unsigned int mesh_size,
+               uneighbours_table table) {
   const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
   unsigned int idx = idx2;
 
@@ -389,10 +421,11 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     const unsigned int mesh_size =
         mesh_.get_elements(location::cell).last_compute_domain_idx();
 
-    const unsigned int nbx1d = (mesh_size + block_size_x - 1) / block_size_x;
+    const unsigned int nbx1d =
+        (mesh_size + (block_size_x * 2) - 1) / (block_size_x * 2);
 
     dim3 num_blocks1d(nbx1d, 1, 1);
-    dim3 block_dim1d(block_size_x, 1);
+    dim3 block_dim1d(block_size_x * 2, 1);
 
     copy_mesh<<<num_blocks1d, block_dim1d>>>(a_cell, b_cell, init_offset,
                                              kstride_cell, ksize, mesh_size);
@@ -486,7 +519,9 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
     gpuErrchk(cudaDeviceSynchronize());
     t1 = std::chrono::high_resolution_clock::now();
-    on_cells_mesh<<<num_blocks1d, block_dim1d>>>(
+    on_cells_mesh<<<
+        num_blocks1d, block_dim1d,
+        mesh_.get_elements(location::cell).table(location::cell).size()>>>(
         a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
         mesh_.get_elements(location::cell).table(location::cell));
     // gpuErrchk(cudaPeekAtLastError());
@@ -517,11 +552,10 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
     mesh_to_hilbert(umesh_, mesh_);
 
-    //    on_cells_mesh<<<num_blocks1d, block_dim1d>>>(
-    //        a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
-    //        mesh_.get_elements(location::cell).table(location::cell));
-    //    // gpuErrchk(cudaPeekAtLastError());
-    //    gpuErrchk(cudaDeviceSynchronize());
+    on_cells_umesh<<<num_blocks1d, block_dim1d>>>(
+        a_cell, b_cell, init_offset, kstride_cell, ksize, mesh_size,
+        umesh_.get_elements(location::cell).table(location::cell));
+    gpuErrchk(cudaDeviceSynchronize());
 
     //    t2 = std::chrono::high_resolution_clock::now();
     //    if (t > warmup_step)
