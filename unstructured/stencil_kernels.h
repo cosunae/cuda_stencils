@@ -144,6 +144,211 @@ on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
   }
 }
 
+template <typename T>
+__global__ void
+complex_on_cells(T const *__restrict__ a, T *__restrict__ b,
+                 T const *__restrict__ c, T *__restrict__ d,
+                 T const *__restrict__ fac1, T const *__restrict__ fac2,
+                 const unsigned int init_offset, const unsigned int cstride,
+                 const unsigned int jstride, const unsigned int kstride,
+                 const unsigned int ksize, const unsigned int isize,
+                 const unsigned int jsize) {
+  const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+  const unsigned int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+  const unsigned int bsi = (blockIdx.x + 1) * BLOCKSIZEX < isize
+                               ? BLOCKSIZEX
+                               : isize - blockIdx.x * BLOCKSIZEX;
+  const unsigned int bsj = (blockIdx.y + 1) * BLOCKSIZEY < jsize
+                               ? BLOCKSIZEY
+                               : jsize - blockIdx.y * BLOCKSIZEY;
+
+  unsigned idx = uindex(i, 0, j, cstride, jstride, init_offset);
+
+  // equations are
+  // b = on_cell(a) * fac1 + on_cell(c)
+  // d = on_cell(b) * fac2(k+1) + on_cell(a)
+  if (threadIdx.x < bsi && threadIdx.y < bsj) {
+    for (int k = 0; k < ksize - 1; ++k) {
+      // color 0
+      b[idx] = (a[idx + cstride - 1] + a[idx + cstride] + a[idx - cstride]) *
+                   fac1[idx] +
+               (c[idx + cstride - 1] + c[idx + cstride] + c[idx - cstride]);
+      // color 1
+      b[idx + cstride] =
+          (a[idx] + a[idx + 1] + a[idx + cstride * 2]) * fac1[idx + cstride] +
+          (c[idx] + c[idx + 1] + c[idx + cstride * 2]);
+
+      __syncthreads();
+      // color 0
+      d[idx] = (b[idx + cstride - 1] + b[idx + cstride] + b[idx - cstride]) *
+                   (fac2[idx + kstride] - fac2[idx] + 0.1) +
+               (a[idx + cstride - 1] + a[idx + cstride] + a[idx - cstride]);
+      // color 1
+      d[idx + cstride] =
+          (b[idx] + b[idx + 1] + b[idx + cstride * 2]) *
+              (fac2[idx + cstride + kstride] - fac2[idx + cstride] + 0.1) +
+          (a[idx] + a[idx + 1] + a[idx + cstride * 2]);
+
+      idx += kstride;
+    }
+
+    // ksize-1
+    int k = ksize - 1;
+
+    // color 0
+    b[idx] = (a[idx + cstride - 1] + a[idx + cstride] + a[idx - cstride]) *
+                 fac1[idx] +
+             (c[idx + cstride - 1] + c[idx + cstride] + c[idx - cstride]);
+    // color 1
+    b[idx + cstride] =
+        (a[idx] + a[idx + 1] + a[idx + cstride * 2]) * fac1[idx + cstride] +
+        (c[idx] + c[idx + 1] + c[idx + cstride * 2]);
+
+    __syncthreads();
+    // color 0
+    d[idx] = (b[idx + cstride - 1] + b[idx + cstride] + b[idx - cstride]) *
+                 fac2[idx] +
+             (a[idx + cstride - 1] + a[idx + cstride] + a[idx - cstride]);
+    // color 1
+    d[idx + cstride] =
+        (b[idx] + b[idx + 1] + b[idx + cstride * 2]) * fac2[idx + cstride] +
+        (a[idx] + a[idx + 1] + a[idx + cstride * 2]);
+  }
+}
+
+template <typename T>
+__global__ void
+complex_on_cells_mesh(T const *__restrict__ a, T *__restrict__ b,
+                      T *const __restrict__ c, T *__restrict__ d,
+                      T *const __restrict__ fac1, T *const __restrict__ fac2,
+                      const unsigned int kstride, const unsigned int ksize,
+                      const unsigned int mesh_size, sneighbours_table table) {
+  const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned int idx = idx2;
+
+  extern __shared__ size_t tab[];
+  const size_t shared_stride = blockDim.x;
+  const size_t stride =
+      table.isize() * table.jsize() * num_colors(table.nloc());
+
+  tab[threadIdx.x + shared_stride * 0] = table.raw_data(idx2 + 0 * stride);
+  tab[threadIdx.x + shared_stride * 1] = table.raw_data(idx2 + 1 * stride);
+  tab[threadIdx.x + shared_stride * 2] = table.raw_data(idx2 + 2 * stride);
+
+  __syncthreads();
+
+  if (idx2 < mesh_size) {
+    for (int k = 0; k < (int)ksize - 1; ++k) {
+      b[idx] = (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                   fac1[idx] +
+               (c[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                c[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                c[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+
+      __syncthreads();
+
+      d[idx] = (b[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                b[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                b[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                   (fac2[idx + kstride] - fac2[idx] + 0.1) +
+               (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+
+      idx += kstride;
+    }
+
+    int k = ksize - 1;
+    b[idx] = (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+              a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+              a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                 fac1[idx] +
+             (c[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+              c[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+              c[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+
+    __syncthreads();
+
+    d[idx] = (b[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+              b[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+              b[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                 fac2[idx] +
+             (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+              a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+              a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+  }
+}
+
+template <typename T>
+__global__ void
+complex_on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
+                       T *const __restrict__ c, T *__restrict__ d,
+                       T *const __restrict__ fac1, T *const __restrict__ fac2,
+                       const unsigned int kstride, const unsigned int ksize,
+                       const unsigned int mesh_size, uneighbours_table table) {
+  const unsigned int idx2 = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned int idx = idx2;
+
+  extern __shared__ size_t tab[];
+  const size_t shared_stride = blockDim.x;
+  const size_t stride = table.totald_size();
+
+  tab[threadIdx.x + shared_stride * 0] = table.raw_data(idx2 + 0 * stride);
+  tab[threadIdx.x + shared_stride * 1] = table.raw_data(idx2 + 1 * stride);
+  tab[threadIdx.x + shared_stride * 2] = table.raw_data(idx2 + 2 * stride);
+
+  __syncthreads();
+
+  if (idx2 < mesh_size) {
+    for (int k = 0; k < (int)ksize; ++k) {
+
+      for (int k = 0; k < (int)ksize - 1; ++k) {
+        b[idx] = (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                  a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                  a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                     fac1[idx] +
+                 (c[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                  c[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                  c[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+
+        __syncthreads();
+
+        d[idx] = (b[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                  b[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                  b[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                     (fac2[idx + kstride] - fac2[idx] + 0.1) +
+                 (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                  a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                  a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+
+        idx += kstride;
+      }
+
+      int k = ksize - 1;
+      b[idx] = (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                   fac1[idx] +
+               (c[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                c[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                c[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+
+      __syncthreads();
+
+      d[idx] = (b[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                b[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                b[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
+                   fac2[idx] +
+               (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
+                a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
+    }
+  }
+}
+
 /*
 template <typename T>
 __global__ void
@@ -448,6 +653,11 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
   T *a_cell, *a_ucell;
   T *b_cell, *b_ucell;
+  T *c_cell, *c_ucell;
+  T *d_cell, *d_ucell;
+  T *fac1_cell, *fac1_ucell;
+  T *fac2_cell, *fac2_ucell;
+
   cudaMallocManaged(&a_cell, sizeof(T) * total_size_cell);
   cudaMallocManaged(&b_cell, sizeof(T) * total_size_cell);
 
@@ -465,6 +675,23 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
                          init_offset)] =
               uindex3(i, c, j, k, cstride_cell, jstride_cell, kstride_cell,
                       init_offset);
+
+          c_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell, kstride_cell,
+                         init_offset)] =
+              uindex3(i, c, j, k, cstride_cell, jstride_cell, kstride_cell,
+                      init_offset) -
+              cstride_cell / 1.5;
+          fac1_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
+                            kstride_cell, init_offset)] =
+              uindex3(i, c, j, k, cstride_cell, jstride_cell, kstride_cell,
+                      init_offset) -
+              cstride_cell / 1.5 + i / (double)isize;
+
+          fac2_cell[uindex3(i, c, j, k, cstride_cell, jstride_cell,
+                            kstride_cell, init_offset)] =
+              uindex3(i, c, j, k, cstride_cell, jstride_cell, kstride_cell,
+                      init_offset) -
+              cstride_cell / 1.5 + j / (double)jsize;
         }
       }
     }
@@ -474,6 +701,9 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
        ++i) {
     a_ucell[i] = i;
     b_ucell[i] = i;
+    c_ucell[i] = i - cstride_cell / 1.5;
+    fac1_ucell[i] = i - cstride_cell / 1.5 + i / (double)isize;
+    fac2_ucell[i] = i - cstride_cell / 1.5 + i / (double)jsize;
   }
 
   const unsigned int block_size_x = BLOCKSIZEX;
@@ -624,28 +854,105 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
     //--------------  HILBER MESH ------------//
     //----------------------------------------//
 
-    std::cout << "Running hilber cells" << std::endl;
-    gpuErrchk(cudaDeviceSynchronize());
-    t1 = std::chrono::high_resolution_clock::now();
+    {
+      std::cout << "Running hilber cells" << std::endl;
+      gpuErrchk(cudaDeviceSynchronize());
+      t1 = std::chrono::high_resolution_clock::now();
 
-    auto cells = umesh_.get_elements(location::cell);
-    auto cell_to_cell = cells.table(location::cell);
+      auto cells = umesh_.get_elements(location::cell);
+      auto cell_to_cell = cells.table(location::cell);
 
-    on_cells_umesh<<<num_blocks1d, block_dim1d,
-                     block_dim1d.x *
-                         num_neighbours(location::cell, location::cell) *
-                         sizeof(size_t)>>>(
-        a_ucell, b_cell, umesh_.totald_size() * num_colors(location::cell),
-        ksize, mesh_size,
-        umesh_.get_elements(location::cell).table(location::cell));
-    gpuErrchk(cudaDeviceSynchronize());
+      on_cells_umesh<<<num_blocks1d, block_dim1d,
+                       block_dim1d.x *
+                           num_neighbours(location::cell, location::cell) *
+                           sizeof(size_t)>>>(
+          a_ucell, b_cell, umesh_.totald_size() * num_colors(location::cell),
+          ksize, mesh_size,
+          umesh_.get_elements(location::cell).table(location::cell));
+      gpuErrchk(cudaDeviceSynchronize());
 
-    t2 = std::chrono::high_resolution_clock::now();
-    if (t > warmup_step)
-      timings[uoncellsmesh_hilbert_st] +=
-          std::chrono::duration<double>(t2 - t1).count();
-    if (!t) {
-      //  verify_on_ucells<T>(b_ucell, a_ucell, ksize, umesh_);
+      t2 = std::chrono::high_resolution_clock::now();
+      if (t > warmup_step)
+        timings[uoncellsmesh_hilbert_st] +=
+            std::chrono::duration<double>(t2 - t1).count();
+      if (!t) {
+        //  verify_on_ucells<T>(b_ucell, a_ucell, ksize, umesh_);
+      }
+    }
+
+    //----------------------------------------//
+    //-----------  COMPLEX ONCELLS  ----------//
+    //----------------------------------------//
+    {
+      gpuErrchk(cudaDeviceSynchronize());
+      t1 = std::chrono::high_resolution_clock::now();
+      complex_on_cells<<<num_blocks, block_dim>>>(
+          a_cell, b_cell, c_cell, d_cell, fac1_cell, fac2_cell, init_offset,
+          cstride_cell, jstride_cell, kstride_cell, ksize, isize, jsize);
+      // gpuErrchk(cudaPeekAtLastError());
+      gpuErrchk(cudaDeviceSynchronize());
+
+      t2 = std::chrono::high_resolution_clock::now();
+      if (t > warmup_step)
+        timings[complex_uoncells_st] +=
+            std::chrono::duration<double>(t2 - t1).count();
+      if (!t) {
+        verify_on_cells<T>(b_cell, a_cell, isize, jsize, ksize, cstride_cell,
+                           jstride_cell, kstride_cell, init_offset);
+      }
+    }
+    //----------------------------------------//
+    //---------  COMPLEX ONCELLS MESH --------//
+    //----------------------------------------//
+    {
+      gpuErrchk(cudaDeviceSynchronize());
+      t1 = std::chrono::high_resolution_clock::now();
+
+      complex_on_cells_mesh<<<num_blocks1d, block_dim1d,
+                              block_dim1d.x * num_neighbours(location::cell,
+                                                             location::cell) *
+                                  sizeof(size_t)>>>(
+          a_ucell, b_ucell, c_ucell, d_ucell, fac1_ucell, fac2_ucell,
+          mesh_.totald_size() * num_colors(location::cell), ksize, mesh_size,
+          mesh_.get_elements(location::cell).table(location::cell));
+      // gpuErrchk(cudaPeekAtLastError());
+      gpuErrchk(cudaDeviceSynchronize());
+
+      t2 = std::chrono::high_resolution_clock::now();
+      if (t > warmup_step)
+        timings[complex_uoncellsmesh_st] +=
+            std::chrono::duration<double>(t2 - t1).count();
+      if (!t) {
+        verify_on_ucells<T>(b_ucell, a_ucell, ksize, mesh_);
+      }
+    }
+    //----------------------------------------//
+    //----------  COMPLEX HILBER MESH --------//
+    //----------------------------------------//
+    {
+      std::cout << "Running hilber cells" << std::endl;
+      gpuErrchk(cudaDeviceSynchronize());
+      t1 = std::chrono::high_resolution_clock::now();
+
+      auto cells = umesh_.get_elements(location::cell);
+      auto cell_to_cell = cells.table(location::cell);
+
+      complex_on_cells_umesh<<<num_blocks1d, block_dim1d,
+                               block_dim1d.x * num_neighbours(location::cell,
+                                                              location::cell) *
+                                   sizeof(size_t)>>>(
+          a_ucell, b_cell, c_ucell, d_ucell, fac1_ucell, fac2_ucell,
+          umesh_.totald_size() * num_colors(location::cell), ksize, mesh_size,
+          umesh_.get_elements(location::cell).table(location::cell));
+      gpuErrchk(cudaDeviceSynchronize());
+
+      t2 = std::chrono::high_resolution_clock::now();
+      if (t > warmup_step)
+        timings[complex_uoncellsmesh_hilbert_st] +=
+            std::chrono::duration<double>(t2 - t1).count();
+      if (!t) {
+        //  verify_on_ucells<T>(b_ucell, a_ucell, ksize, umesh_);
+      }
     }
   }
 }

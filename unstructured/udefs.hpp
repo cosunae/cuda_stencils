@@ -6,6 +6,9 @@ enum ustencils {
   uoncells_st,
   uoncellsmesh_st,
   uoncellsmesh_hilbert_st,
+  complex_uoncells_st,
+  complex_uoncellsmesh_st,
+  complex_uoncellsmesh_hilbert_st,
   unum_bench_st
 };
 

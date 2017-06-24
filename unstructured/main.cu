@@ -81,36 +81,60 @@ int main(int argc, char **argv) {
 
   printf("--------------------------\n");
   printf("copy : %f GB/s, time : %f \n",
-         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+         tot_size * 2 /*color*/ * 2 /* r/w */ * sizeof(float) /
              (timings[ucopy_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
          timings[ucopy_st]);
 
   printf("--------------------------\n");
   printf("copy mesh : %f GB/s, time : %f \n",
-         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+         tot_size * 2 /*color*/ * 2 /* r/w */ * sizeof(float) /
              (timings[ucopymesh_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
          timings[ucopymesh_st]);
 
   printf("--------------------------\n");
   printf("on_cells : %f GB/s, time : %f \n",
-         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+         tot_size * 2 /*color*/ * 2 /* r/w */ * sizeof(float) /
              (timings[uoncells_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
          timings[uoncells_st]);
 
   printf("--------------------------\n");
   printf("on_cells_mesh : %f GB/s, time : %f \n",
-         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+         tot_size * 2 /*color*/ * 2 /* r/w */ * sizeof(float) /
              (timings[uoncellsmesh_st] / (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
          timings[uoncellsmesh_st]);
   printf("--------------------------\n");
   printf("on_cells_mesh_hilber : %f GB/s, time : %f \n",
-         tot_size *2 /*color*/ * 2 /* r/w */ * sizeof(float) /
-             (timings[uoncellsmesh_hilbert_st] / (double)(tsteps - (warmup_step + 1))) /
+         tot_size * 2 /*color*/ * 2 /* r/w */ * sizeof(float) /
+             (timings[uoncellsmesh_hilbert_st] /
+              (double)(tsteps - (warmup_step + 1))) /
              (1024. * 1024. * 1024.),
          timings[uoncellsmesh_hilbert_st]);
 
+  printf("--------------------------\n");
+  // w(b,d) r(a,b,c,fac1,fac2)
+  printf("complex_on_cells : %f GB/s, time : %f \n",
+         tot_size * 2 /*color*/ * 7 /* r/w */ * sizeof(float) /
+             (timings[complex_uoncells_st] /
+              (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
+         timings[complex_uoncells_st]);
+
+  printf("--------------------------\n");
+  printf("complex_on_cells_mesh : %f GB/s, time : %f \n",
+         tot_size * 2 /*color*/ * 7 /* r/w */ * sizeof(float) /
+             (timings[complex_uoncellsmesh_st] /
+              (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
+         timings[complex_uoncellsmesh_st]);
+  printf("--------------------------\n");
+  printf("on_cells_mesh_hilber : %f GB/s, time : %f \n",
+         tot_size * 2 /*color*/ * 7 /* r/w */ * sizeof(float) /
+             (timings[uoncellsmesh_hilbert_st] /
+              (double)(tsteps - (warmup_step + 1))) /
+             (1024. * 1024. * 1024.),
+         timings[complex_uoncellsmesh_hilbert_st]);
 }
