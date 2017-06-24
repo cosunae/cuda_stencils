@@ -660,12 +660,24 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
 
   cudaMallocManaged(&a_cell, sizeof(T) * total_size_cell);
   cudaMallocManaged(&b_cell, sizeof(T) * total_size_cell);
+  cudaMallocManaged(&c_cell, sizeof(T) * total_size_cell);
+  cudaMallocManaged(&d_cell, sizeof(T) * total_size_cell);
+  cudaMallocManaged(&fac1_cell, sizeof(T) * total_size_cell);
+  cudaMallocManaged(&fac2_cell, sizeof(T) * total_size_cell);
 
   std::cout << " SIZ " << mesh_.totald_size() * ksize << std::endl;
   cudaMallocManaged(&a_ucell, sizeof(T) * mesh_.totald_size() *
                                   num_colors(location::cell) * ksize);
   cudaMallocManaged(&b_ucell, sizeof(T) * mesh_.totald_size() *
                                   num_colors(location::cell) * ksize);
+  cudaMallocManaged(&c_ucell, sizeof(T) * mesh_.totald_size() *
+                                  num_colors(location::cell) * ksize);
+  cudaMallocManaged(&d_ucell, sizeof(T) * mesh_.totald_size() *
+                                  num_colors(location::cell) * ksize);
+  cudaMallocManaged(&fac1_ucell, sizeof(T) * mesh_.totald_size() *
+                                     num_colors(location::cell) * ksize);
+  cudaMallocManaged(&fac2_ucell, sizeof(T) * mesh_.totald_size() *
+                                     num_colors(location::cell) * ksize);
 
   for (unsigned int i = 0; i < isize; ++i) {
     for (unsigned int c = 0; c < num_colors(location::cell); ++c) {
