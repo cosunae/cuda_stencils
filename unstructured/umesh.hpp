@@ -68,9 +68,9 @@ public:
       return m_elements_to_edges;
     return m_elements_to_vertices;
   }
- 
+
   GT_FUNCTION
-  size_t totald_size() { return m_totald_size;}
+  size_t totald_size() { return m_totald_size; }
 
 private:
   location m_loc;
@@ -153,7 +153,7 @@ public:
                 nodes_totald_size * num_colors(location::vertex)) {}
 
   GT_FUNCTION
-  size_t totald_size() { return m_totald_size;}
+  size_t totald_size() { return m_totald_size; }
 
   void print() {
     std::stringstream ss;

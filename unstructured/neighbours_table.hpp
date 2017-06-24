@@ -64,7 +64,7 @@ public:
   size_t &raw_data(const unsigned int idx) { return m_data[idx]; }
 
   GT_FUNCTION
-  size_t* data() { return m_data;}
+  size_t *data() { return m_data; }
 
   GT_FUNCTION
   location ploc() const { return m_ploc; }
@@ -168,44 +168,50 @@ public:
     if (i >= 0 && i < (int)m_isize && j >= 0 && j < (int)m_jsize) {
       int idx = i + c * m_isize + j * num_colors(m_ploc) * m_isize +
                 neigh_idx * (m_isize)*num_colors(m_ploc) * (m_jsize);
-/*      if (idx >= last_compute_domain_idx()) {
-        std::cout << "WARNING IN COMPUTE DOMAIN : " << i << "," << c << "," << j
-                  << "," << neigh_idx << ": " << last_compute_domain_idx()
-                  << " -> " << idx << std::endl;
-      }
-*/
+      /*      if (idx >= last_compute_domain_idx()) {
+              std::cout << "WARNING IN COMPUTE DOMAIN : " << i << "," << c <<
+         "," << j
+                        << "," << neigh_idx << ": " << last_compute_domain_idx()
+                        << " -> " << idx << std::endl;
+            }
+      */
       return idx;
     }
     if (i < 0 && j >= 0 && j < (int)m_jsize) {
       int idx = (int)last_compute_domain_idx() - i - 1 + c * m_nhalo +
                 j * m_nhalo * num_colors(m_ploc) +
                 neigh_idx * m_jsize * m_nhalo * num_colors(m_ploc);
-/*      if (idx >= last_west_halo_idx())
-        std::cout << "WARNING IN WEST : " << i << "," << c << "," << j << ","
-                  << neigh_idx << ": " << last_west_halo_idx() << " -> " << idx
-                  << std::endl;
-*/
+      /*      if (idx >= last_west_halo_idx())
+              std::cout << "WARNING IN WEST : " << i << "," << c << "," << j <<
+         ","
+                        << neigh_idx << ": " << last_west_halo_idx() << " -> "
+         << idx
+                        << std::endl;
+      */
       return idx;
     }
     if (j < 0 && i < (int)m_isize) {
       int idx = last_west_halo_idx() + (i + m_nhalo) + c * (m_nhalo + m_isize) +
                 (-j - 1) * (m_nhalo + m_isize) * num_colors(m_ploc) +
                 neigh_idx * m_nhalo * (m_nhalo + m_isize) * num_colors(m_ploc);
-/*      if (idx >= last_south_halo_idx())
-        std::cout << "WARNING IN SOUTH : " << i << "," << c << "," << j << ","
-                  << neigh_idx << ": " << last_south_halo_idx() << " -> " << idx
-                  << std::endl;
-*/
+      /*      if (idx >= last_south_halo_idx())
+              std::cout << "WARNING IN SOUTH : " << i << "," << c << "," << j <<
+         ","
+                        << neigh_idx << ": " << last_south_halo_idx() << " -> "
+         << idx
+                        << std::endl;
+      */
       return idx;
     }
     if (i >= (int)m_isize && j < (int)m_jsize) {
       int idx = last_south_halo_idx() + (i - (int)m_isize) + c * m_nhalo +
                 (j + (int)m_nhalo) * m_nhalo * num_colors(m_ploc) +
                 neigh_idx * (m_nhalo + m_jsize) * m_nhalo * num_colors(m_ploc);
-/*      if (idx >= last_east_halo_idx())
-        std::cout << "WARNING IN EAST : " << last_east_halo_idx() << " -> "
-                  << idx << std::endl;
-*/
+      /*      if (idx >= last_east_halo_idx())
+              std::cout << "WARNING IN EAST : " << last_east_halo_idx() << " ->
+         "
+                        << idx << std::endl;
+      */
       return idx;
     }
     if (j >= (int)m_jsize) {
@@ -213,14 +219,15 @@ public:
           last_east_halo_idx() + (i + m_nhalo) + c * (m_isize + m_nhalo * 2) +
           (j - m_jsize) * num_colors(m_ploc) * (m_isize + m_nhalo * 2) +
           neigh_idx * m_nhalo * num_colors(m_ploc) * (m_isize + m_nhalo * 2);
-/*      if (idx >= last_north_halo_idx())
-        std::cout << "WARNING IN NORTH : " << last_north_halo_idx() << " -> "
-                  << idx << std::endl;
-*/
+      /*      if (idx >= last_north_halo_idx())
+              std::cout << "WARNING IN NORTH : " << last_north_halo_idx() << "
+         -> "
+                        << idx << std::endl;
+      */
       return idx;
     }
     assert(false);
-//    std::cout << "ERROR " << std::endl;
+    //    std::cout << "ERROR " << std::endl;
     return 0;
   }
 
@@ -243,11 +250,10 @@ public:
                totald_size * num_neighbours(primary_loc, neigh_loc)),
         m_compd_size(compd_size), m_totald_size(totald_size) {}
 
-  GT_FUNCTION 
-  uneighbours_table(uneighbours_table const& other) : 
-        m_compd_size(other.m_compd_size), 
-        m_totald_size(other.m_totald_size), 
-        ntable(other){}
+  GT_FUNCTION
+  uneighbours_table(uneighbours_table const &other)
+      : m_compd_size(other.m_compd_size), m_totald_size(other.m_totald_size),
+        ntable(other) {}
 
   GT_FUNCTION
   size_t &operator()(size_t idx, unsigned int neigh_idx) {
