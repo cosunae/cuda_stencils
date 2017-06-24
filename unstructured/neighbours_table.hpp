@@ -243,6 +243,12 @@ public:
                totald_size * num_neighbours(primary_loc, neigh_loc)),
         m_compd_size(compd_size), m_totald_size(totald_size) {}
 
+  GT_FUNCTION 
+  uneighbours_table(uneighbours_table const& other) : 
+        m_compd_size(other.m_compd_size), 
+        m_totald_size(other.m_totald_size), 
+        ntable(other){}
+
   GT_FUNCTION
   size_t &operator()(size_t idx, unsigned int neigh_idx) {
     return m_data[idx + m_totald_size * neigh_idx];
