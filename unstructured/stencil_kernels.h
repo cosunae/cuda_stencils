@@ -303,19 +303,16 @@ complex_on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
   __syncthreads();
 
   if (idx2 < mesh_size) {
-    for (int k = 0; k < (int)ksize; ++k) {
-
       for (int k = 0; k < (int)ksize - 1; ++k) {
         b[idx] = (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
                   a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
                   a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
-                     fac1[idx] +
+                     fac1[idx]
+ +
                  (c[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
                   c[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
                   c[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
-
         __syncthreads();
-
         d[idx] = (b[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
                   b[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
                   b[k * kstride + tab[threadIdx.x + 2 * shared_stride]]) *
@@ -323,7 +320,6 @@ complex_on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
                  (a[k * kstride + tab[threadIdx.x + 0 * shared_stride]] +
                   a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
                   a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
-
         idx += kstride;
       }
 
@@ -346,7 +342,6 @@ complex_on_cells_umesh(T const *__restrict__ a, T *__restrict__ b,
                 a[k * kstride + tab[threadIdx.x + 1 * shared_stride]] +
                 a[k * kstride + tab[threadIdx.x + 2 * shared_stride]]);
     }
-  }
 }
 
 /*
@@ -878,7 +873,7 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
                        block_dim1d.x *
                            num_neighbours(location::cell, location::cell) *
                            sizeof(size_t)>>>(
-          a_ucell, b_cell, umesh_.totald_size() * num_colors(location::cell),
+          a_ucell, b_ucell, umesh_.totald_size() * num_colors(location::cell),
           ksize, mesh_size,
           umesh_.get_elements(location::cell).table(location::cell));
       gpuErrchk(cudaDeviceSynchronize());
@@ -908,10 +903,6 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
       if (t > warmup_step)
         timings[complex_uoncells_st] +=
             std::chrono::duration<double>(t2 - t1).count();
-      if (!t) {
-        verify_on_cells<T>(b_cell, a_cell, isize, jsize, ksize, cstride_cell,
-                           jstride_cell, kstride_cell, init_offset);
-      }
     }
     //----------------------------------------//
     //---------  COMPLEX ONCELLS MESH --------//
@@ -934,9 +925,6 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
       if (t > warmup_step)
         timings[complex_uoncellsmesh_st] +=
             std::chrono::duration<double>(t2 - t1).count();
-      if (!t) {
-        verify_on_ucells<T>(b_ucell, a_ucell, ksize, mesh_);
-      }
     }
     //----------------------------------------//
     //----------  COMPLEX HILBER MESH --------//
@@ -953,7 +941,7 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
                                block_dim1d.x * num_neighbours(location::cell,
                                                               location::cell) *
                                    sizeof(size_t)>>>(
-          a_ucell, b_cell, c_ucell, d_ucell, fac1_ucell, fac2_ucell,
+          a_ucell, b_ucell, c_ucell, d_ucell, fac1_ucell, fac2_ucell,
           umesh_.totald_size() * num_colors(location::cell), ksize, mesh_size,
           umesh_.get_elements(location::cell).table(location::cell));
       gpuErrchk(cudaDeviceSynchronize());
@@ -962,9 +950,6 @@ void launch(std::vector<double> &timings, mesh &mesh_, const unsigned int isize,
       if (t > warmup_step)
         timings[complex_uoncellsmesh_hilbert_st] +=
             std::chrono::duration<double>(t2 - t1).count();
-      if (!t) {
-        //  verify_on_ucells<T>(b_ucell, a_ucell, ksize, umesh_);
-      }
     }
   }
 }
